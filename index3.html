@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AICU 학습앱 - V2 대분류별 문제</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .question-container { min-height: 200px; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="app-header" class="flex flex-wrap items-center justify-between mb-6 p-4 bg-white rounded-lg shadow">
+      <div class="flex items-center gap-4">
+        <span id="user-id-header" class="font-bold text-blue-700">User: guest</span>
+        <span id="d-day-header" class="text-sm text-gray-500">D-30</span>
+        <span id="date-header" class="text-sm text-gray-500"></span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="daily-progress-header" class="text-sm text-gray-500">오늘 진도: 0%</span>
+        <span id="total-progress-header" class="font-bold text-blue-700">전체 진도: 0%</span>
+      </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">AICU 학습앱 - V2 (수정본)</h1>
+
+        <div id="loading-area" class="text-center py-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p id="loading-status" class="text-gray-600">ins_789_final_dev.csv 파일을 불러오는 중...</p>
+        </div>
+
+        <div id="quiz-area" class="hidden">
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                <p>여기에 V2.0의 UI 요소들이 표시됩니다.</p>
+            </div>
+        </div>
+
+        <script>
+            // PapaParse 라이브러리가 로드되었는지 확인
+            if (typeof Papa === 'undefined') {
+                console.error('PapaParse 라이브러리가 로드되지 않았습니다.');
+                // 로딩 오류 UI 표시 등 추가
+            }
+
+            const loadingStatus = document.getElementById('loading-status');
+            let questions = []; // 전체 문제 배열
+            let filteredQuestions = []; // 현재 모드에 맞는 문제 배열
+            let currentQuestionIndex = 0; // 현재 문제 인덱스
+
+            async function loadCSVData() {
+                loadingStatus.textContent = "CSV 데이터 로딩 중...";
+                try {
+                    // index.html의 로딩 방식을 적용 (ins_789_final_dev.csv 사용)
+                    const response = await fetch('ins_789_final_dev.csv');
+                    if (!response.ok) {
+                        throw new Error(`파일 로딩 실패: ${response.status} ${response.statusText}`);
+                    }
+                    const csvContent = await response.text();
+
+                    // 조대표님 지침에 따라 qcode만 있다면 무조건 유효한 문제로 처리
+                    const parsed = Papa.parse(csvContent, {
+                        header: true,
+                        skipEmptyLines: true,
+                    });
+
+                    // QCODE가 존재하는 행만 유효한 문제로 필터링
+                    questions = parsed.data.filter(row => row.QCODE);
+
+                    if (questions.length === 0) {
+                        loadingStatus.textContent = "문제를 불러오지 못했습니다. CSV 파일에 유효한 데이터가 없습니다.";
+                    } else {
+                        loadingStatus.textContent = `총 ${questions.length}개의 문제를 성공적으로 불러왔습니다.`;
+                        document.getElementById('loading-area').classList.add('hidden');
+                        document.getElementById('quiz-area').classList.remove('hidden');
+
+                        // V2.0의 대분류/모드별 기능에 맞춰 filteredQuestions 설정 로직이 여기에 추가됩니다.
+                        // 일단은 모든 문제를 filteredQuestions에 할당하여 기본 동작을 확인합니다.
+                        filteredQuestions = questions;
+                        displayQuestion(currentQuestionIndex);
+                    }
+
+                } catch (error) {
+                    loadingStatus.textContent = `오류 발생: ${error.message}`;
+                    console.error('Error loading CSV:', error);
+                }
+            }
+
+            window.addEventListener('load', loadCSVData);
+
+            // 임시 UI 업데이트 함수
+            function displayQuestion(index) {
+                if (index < filteredQuestions.length) {
+                    const question = filteredQuestions[index];
+                    console.log('문제 표시:', question.QUESTION);
+                    // 여기에 문제 UI 업데이트 로직이 들어갑니다.
+                }
+            }
+
+            // ... (기존의 V2.0 기능들)
+        </script>
+    </div>
+</body>
+</html>
