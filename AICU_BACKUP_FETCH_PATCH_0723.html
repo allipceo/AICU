@@ -6,8 +6,6 @@
     <title>AICU 학습 앱 (최신 UI)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PapaParse CDN 추가 -->
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
         /* Inter 폰트 적용 (일반적인 산세리프 폰트로 대체) */
         body {
@@ -162,22 +160,117 @@
 
 
         // Firebase 초기화 및 인증
-        // CSV 데이터 로딩 함수 (브라우저 전용, 20개 샘플)
+        // CSV 데이터 로딩 함수
         async function loadCSVData() {
             loadingStatus.textContent = "CSV 데이터 로딩 중...";
             try {
-                const response = await fetch('ins_20_sample.csv');
-                const csvContent = await response.text();
-                const parsed = Papa.parse(csvContent, {
-                    header: true,
-                    skipEmptyLines: true
-                });
-                questions = parsed.data;
-                console.log('파싱 결과:', questions.length, questions[0]);
+                // Canvas 환경에서 파일 읽기
+                const csvContent = await window.fs.readFile('ins_789_final.csv', { encoding: 'utf8' });
+                
+                // CSV 파싱 (간단한 파싱 로직)
+                const lines = csvContent.trim().split(/\r?\n/);
+                const headers = lines[0].split(',');
+                const data = [];
+                
+                for (let i = 1; i < lines.length; i++) {
+                    const values = [];
+                    let current = '';
+                    let inQuotes = false;
+                    
+                    for (let j = 0; j < lines[i].length; j++) {
+                        const char = lines[i][j];
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            values.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    values.push(current.trim());
+                    
+                    if (values.length === headers.length) {
+                        const row = {};
+                        headers.forEach((header, index) => {
+                            row[header] = values[index];
+                        });
+                        
+                        // 학습 데이터 필드 추가
+                        row.attempts = 0;
+                        row.correctAttempts = 0;
+                        row.incorrectAttempts = 0;
+                        row.lastAttemptDate = null;
+                        row.difficulty = '미정';
+                        row.nextReviewDate = null;
+                        row.attemptCountForDifficulty = 0;
+                        
+                        data.push(row);
+                    }
+                }
+                
+                questions = data;
+                console.log(`✅ CSV 로딩 완료: ${questions.length}개 문제`);
                 loadingStatus.textContent = `CSV 로딩 완료: ${questions.length}개 문제`;
+                
             } catch (error) {
                 console.error('CSV 로딩 오류:', error);
                 loadingStatus.textContent = `CSV 로딩 실패: ${error.message}`;
+                // 대안: 로컬 환경 처리
+                try {
+                    const response = await fetch('ins_789_final.csv');
+                    const csvContent = await response.text();
+                    
+                    // 동일한 파싱 로직 적용
+                    const lines = csvContent.trim().split(/\r?\n/);
+                    const headers = lines[0].split(',');
+                    const data = [];
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = [];
+                        let current = '';
+                        let inQuotes = false;
+                        
+                        for (let j = 0; j < lines[i].length; j++) {
+                            const char = lines[i][j];
+                            if (char === '"') {
+                                inQuotes = !inQuotes;
+                            } else if (char === ',' && !inQuotes) {
+                                values.push(current.trim());
+                                current = '';
+                            } else {
+                                current += char;
+                            }
+                        }
+                        values.push(current.trim());
+                        
+                        if (values.length === headers.length) {
+                            const row = {};
+                            headers.forEach((header, index) => {
+                                row[header] = values[index];
+                            });
+                            
+                            // 학습 데이터 필드 추가
+                            row.attempts = 0;
+                            row.correctAttempts = 0;
+                            row.incorrectAttempts = 0;
+                            row.lastAttemptDate = null;
+                            row.difficulty = '미정';
+                            row.nextReviewDate = null;
+                            row.attemptCountForDifficulty = 0;
+                            
+                            data.push(row);
+                        }
+                    }
+                    
+                    questions = data;
+                    console.log(`✅ 로컬 CSV 로딩 완료: ${questions.length}개 문제`);
+                    loadingStatus.textContent = `로컬 CSV 로딩 완료: ${questions.length}개 문제`;
+                    
+                } catch (localError) {
+                    console.error('로컬 CSV 로딩도 실패:', localError);
+                    loadingStatus.textContent = `CSV 로딩 완전 실패: ${localError.message}`;
+                }
             }
         }
 
