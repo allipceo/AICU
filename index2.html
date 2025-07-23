@@ -165,7 +165,7 @@
         let stats = { totalAnswered: 0, correctCount: 0 };
         let layer1List = [];
         let currentLayer1 = null;
-        // CSV 파일 로딩 함수 (대분류별)
+        // CSV 파일 로딩 함수 (전체 문제)
         async function loadCSVData() {
             const loadingStatus = document.getElementById('loading-status');
             const loadingProgress = document.getElementById('loading-progress');
@@ -173,8 +173,10 @@
                 loadingStatus.textContent = "ins_789_final_dev.csv 파일 다운로드 중...";
                 loadingProgress.style.width = "10%";
                 const response = await fetch('ins_789_final_dev.csv');
-                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                loadingStatus.textContent = "CSV 파일 파싱 중...";
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                loadingStatus.textContent = "대용량 CSV 파일 파싱 중... (잠시만 기다려 주세요)";
                 loadingProgress.style.width = "50%";
                 const csvContent = await response.text();
                 loadingStatus.textContent = "문제 데이터 처리 중...";
@@ -190,31 +192,16 @@
                 if (parsed.errors.length > 0) {
                     console.warn('CSV 파싱 경고:', parsed.errors.slice(0, 5));
                 }
-                questions = parsed.data.filter(row => row.QCODE);
-                // LAYER1 값 추출 및 버튼 생성
-                const layer1Set = new Set(questions.map(q => q.LAYER1 && q.LAYER1.trim()).filter(Boolean));
-                layer1List = Array.from(layer1Set).sort();
-                const layer1Buttons = document.getElementById('layer1-buttons');
-                layer1Buttons.innerHTML = '';
-                layer1List.forEach(layer1 => {
-                    const btn = document.createElement('button');
-                    btn.textContent = layer1;
-                    btn.className = 'bg-blue-100 hover:bg-blue-300 text-blue-800 font-bold py-2 px-4 rounded transition duration-200';
-                    btn.onclick = () => selectLayer1(layer1);
-                    layer1Buttons.appendChild(btn);
-                });
-                // 기본 대분류 선택
-                currentLayer1 = layer1List[0];
-                filteredQuestions = questions.filter(q => q.LAYER1 && q.LAYER1.trim() === currentLayer1);
+                questions = parsed.data.filter(row => row.QCODE && row.QUESTION && row.ANSWER);
                 loadingStatus.textContent = `${questions.length}개 문제 로드 완료!`;
                 loadingProgress.style.width = "100%";
                 document.getElementById('loaded-count').textContent = questions.length;
-                document.getElementById('progress-text').textContent = `1 / ${filteredQuestions.length}`;
-                document.getElementById('remaining').textContent = filteredQuestions.length;
+                document.getElementById('progress-text').textContent = `1 / ${questions.length}`;
+                document.getElementById('remaining').textContent = questions.length;
                 setTimeout(startQuiz, 1000);
             } catch (error) {
                 console.error('CSV 로딩 오류:', error);
-                loadingStatus.innerHTML = `<span class="text-red-600 font-bold">CSV 로딩 실패: ${error.message}</span>`;
+                loadingStatus.innerHTML = `<span class="text-red-600 font-bold">CSV 로딩 실패: ${error.message}</span><br><span class="text-sm mt-2">해결 방법:</span><br><span class="text-sm">1. ins_789_final_dev.csv 파일이 같은 폴더에 있는지 확인</span><br><span class="text-sm">2. GitHub Pages에서 실행 (권장)</span><br><span class="text-sm">3. 로컬 웹서버 사용 (python -m http.server)</span>`;
                 loadingProgress.style.width = "0%";
             }
         }
