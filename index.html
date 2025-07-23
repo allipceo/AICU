@@ -18,7 +18,7 @@
         <!-- 로딩 상태 -->
         <div id="loading-area" class="text-center py-8">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p id="loading-status" class="text-gray-600">ins_789_final.csv 파일을 불러오는 중...</p>
+            <p id="loading-status" class="text-gray-600">ins_789_final_dev.csv 파일을 불러오는 중...</p>
             <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
                 <div id="loading-progress" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
             </div>
@@ -117,7 +117,7 @@
 
         <!-- 파일 정보 -->
         <div class="mt-4 text-center text-sm text-gray-500">
-            <p>데이터 소스: <span id="data-source">ins_789_final.csv</span></p>
+            <p>데이터 소스: <span id="data-source">ins_789_final_dev.csv</span></p>
             <p>로드된 문제 수: <span id="loaded-count">0</span>개</p>
             <p class="mt-2 text-xs">🌐 GitHub Pages 또는 로컬 웹서버에서 완벽 동작</p>
         </div>
@@ -140,11 +140,11 @@
             const loadingProgress = document.getElementById('loading-progress');
             
             try {
-                loadingStatus.textContent = "ins_789_final.csv 파일 다운로드 중...";
+                loadingStatus.textContent = "ins_789_final_dev.csv 파일 다운로드 중...";
                 loadingProgress.style.width = "10%";
                 
-                // 실제 파일명: ins_789_final.csv
-                const response = await fetch('ins_789_final.csv');
+                // 실제 파일명: ins_789_final_dev.csv
+                const response = await fetch('ins_789_final_dev.csv');
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -196,7 +196,7 @@
                 loadingStatus.innerHTML = `
                     <span class="text-red-600 font-bold">CSV 로딩 실패: ${error.message}</span><br>
                     <span class="text-sm mt-2">해결 방법:</span><br>
-                    <span class="text-sm">1. ins_789_final.csv 파일이 같은 폴더에 있는지 확인</span><br>
+                    <span class="text-sm">1. ins_789_final_dev.csv 파일이 같은 폴더에 있는지 확인</span><br>
                     <span class="text-sm">2. GitHub Pages에서 실행 (권장)</span><br>
                     <span class="text-sm">3. 로컬 웹서버 사용 (python -m http.server)</span>
                 `;
