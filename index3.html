@@ -25,16 +25,21 @@
     </div>
 
     <div class="container mx-auto px-4 py-6 max-w-4xl">
-        <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">AICU 학습앱 - V2 (수정본)</h1>
+        <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">AICU 학습앱 - V2 (최종 수정본)</h1>
 
         <div id="loading-area" class="text-center py-8">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p id="loading-status" class="text-gray-600">ins_789_final_dev.csv 파일을 불러오는 중...</p>
+            <!-- 노팀장 버전의 로딩 프로그레스 바 추가 -->
+            <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div id="loading-progress" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
         </div>
 
         <div id="quiz-area" class="hidden">
             <div class="bg-white p-6 rounded-lg shadow-md mb-6">
                 <p>여기에 V2.0의 UI 요소들이 표시됩니다.</p>
+                <!-- V2.0의 문제 표시 및 답안, 컨트롤 버튼 등 UI 요소들이 여기에 통합될 예정입니다. -->
             </div>
         </div>
 
@@ -46,6 +51,7 @@
             }
 
             const loadingStatus = document.getElementById('loading-status');
+            const loadingProgress = document.getElementById('loading-progress'); // 로딩 프로그레스 바 요소
             let questions = []; // 전체 문제 배열
             let filteredQuestions = []; // 현재 모드에 맞는 문제 배열
             let currentQuestionIndex = 0; // 현재 문제 인덱스
@@ -53,26 +59,59 @@
             async function loadCSVData() {
                 loadingStatus.textContent = "CSV 데이터 로딩 중...";
                 try {
-                    // index.html의 로딩 방식을 적용 (ins_789_final_dev.csv 사용)
+                    // 노팀장 index.html의 로딩 방식을 완전 적용 (ins_789_final_dev.csv 사용)
+                    loadingStatus.textContent = "ins_789_final_dev.csv 파일 다운로드 중...";
+                    loadingProgress.style.width = "10%";
+
                     const response = await fetch('ins_789_final_dev.csv');
+
                     if (!response.ok) {
-                        throw new Error(`파일 로딩 실패: ${response.status} ${response.statusText}`);
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
+
+                    loadingStatus.textContent = "대용량 CSV 파일 파싱 중... (잠시만 기다려 주세요)";
+                    loadingProgress.style.width = "50%";
+
                     const csvContent = await response.text();
 
-                    // 조대표님 지침에 따라 qcode만 있다면 무조건 유효한 문제로 처리
+                    loadingStatus.textContent = "문제 데이터 처리 중...";
+                    loadingProgress.style.width = "80%";
+
+                    // PapaParse로 CSV 파싱 (노팀장 버전의 대용량 최적화 옵션 포함)
                     const parsed = Papa.parse(csvContent, {
                         header: true,
+                        dynamicTyping: false,
                         skipEmptyLines: true,
+                        delimiter: ',',
+                        quoteChar: '"',
+                        fastMode: true // 대용량 파일 최적화 옵션
                     });
 
-                    // QCODE가 존재하는 행만 유효한 문제로 필터링
-                    questions = parsed.data.filter(row => row.QCODE);
+                    if (parsed.errors.length > 0) {
+                        console.warn('CSV 파싱 경고:', parsed.errors.slice(0, 5)); // 처음 5개만 표시
+                    }
+
+                    // 조대표님 지침에 따라 QCODE가 존재하는 행만 유효한 문제로 필터링
+                    // 노팀장 버전의 필터링 조건도 함께 적용하여 안정성 확보
+                    questions = parsed.data.filter(row =>
+                        row.QCODE &&
+                        row.QUESTION &&
+                        row.ANSWER
+                        // SOURCE 필터링은 필요시 추가 (ins_789_final_dev.csv가 항상 '인스교재'라면 생략)
+                        // row.SOURCE === '인스교재'
+                    );
 
                     if (questions.length === 0) {
-                        loadingStatus.textContent = "문제를 불러오지 못했습니다. CSV 파일에 유효한 데이터가 없습니다.";
+                        loadingStatus.innerHTML = `
+                            <span class="text-red-600 font-bold">문제를 불러오지 못했습니다. CSV 파일에 유효한 데이터가 없습니다.</span><br>
+                            <span class="text-sm mt-2">확인 사항:</span><br>
+                            <span class="text-sm">1. ins_789_final_dev.csv 파일이 비어있지 않은지</span><br>
+                            <span class="text-sm">2. QCODE, QUESTION, ANSWER 필드에 값이 채워져 있는지</span>
+                        `;
+                        loadingProgress.style.width = "0%";
                     } else {
                         loadingStatus.textContent = `총 ${questions.length}개의 문제를 성공적으로 불러왔습니다.`;
+                        loadingProgress.style.width = "100%";
                         document.getElementById('loading-area').classList.add('hidden');
                         document.getElementById('quiz-area').classList.remove('hidden');
 
@@ -83,8 +122,15 @@
                     }
 
                 } catch (error) {
-                    loadingStatus.textContent = `오류 발생: ${error.message}`;
-                    console.error('Error loading CSV:', error);
+                    console.error('CSV 로딩 오류:', error);
+                    loadingStatus.innerHTML = `
+                        <span class="text-red-600 font-bold">CSV 로딩 실패: ${error.message}</span><br>
+                        <span class="text-sm mt-2">해결 방법:</span><br>
+                        <span class="text-sm">1. ins_789_final_dev.csv 파일이 같은 폴더에 있는지 확인</span><br>
+                        <span class="text-sm">2. GitHub Pages에서 실행 (권장)</span><br>
+                        <span class="text-sm">3. 로컬 웹서버 사용 (python -m http.server)</span>
+                    `;
+                    loadingProgress.style.width = "0%";
                 }
             }
 
