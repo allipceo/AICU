@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACIU QUIZ 앱 - UI 구현 초안</title>
+    <!-- Tailwind CSS 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Noto Sans KR 로드 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* 기본 버튼 스타일 */
+        .btn-primary {
+            @apply bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ease-in-out;
+        }
+        .btn-secondary {
+            @apply bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-lg shadow-md hover:bg-gray-400 transition duration-300 ease-in-out;
+        }
+        .btn-category {
+            @apply bg-blue-500 text-white font-semibold py-2 px-4 rounded-md shadow-sm hover:bg-blue-600 transition duration-200 ease-in-out;
+        }
+        .btn-category.active {
+            @apply bg-blue-700 ring-2 ring-blue-300;
+        }
+        .card {
+            @apply bg-white p-6 rounded-xl shadow-lg;
+        }
+        .input-field {
+            @apply w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
+        }
+        /* 특정 모드 화면 숨김/표시 */
+        .mode-screen {
+            display: none; /* 기본적으로 모든 모드 화면 숨김 */
+        }
+        /* 모달 스타일 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="container mx-auto max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden my-8">
+        <!-- 상단 헤더: 앱 제목, 날짜/시간, 명언, 진도율 등 -->
+        <header class="bg-blue-700 text-white p-6 text-center rounded-t-2xl relative">
+            <h1 class="text-4xl font-bold mb-2">ACIU QUIZ</h1>
+            <p id="current-mode" class="text-xl font-semibold mb-4">모드 선택</p>
+
+            <div class="text-sm md:text-base mb-4">
+                <p>사용자: <span id="user-id" class="font-bold">조대표님</span></p>
+                <p>시험까지 D-<span id="exam-countdown" class="font-bold">90</span>일</p>
+                <p><span id="current-date-time"></span></p>
+                <p id="quote-of-the-day" class="italic mt-2">"배움은 끝이 없으며, 노력은 결코 배신하지 않는다."</p>
+            </div>
+            <div class="text-lg font-semibold flex justify-center gap-6">
+                <p>전체 학습 진도율: <span id="overall-progress-rate" class="text-yellow-300">0%</span></p>
+                <p>오늘의 학습 진도율: <span id="daily-progress-rate" class="text-yellow-300">0%</span></p>
+            </div>
+
+            <!-- 설정 버튼 -->
+            <button id="settings-btn" class="absolute top-4 right-4 text-white text-2xl hover:text-blue-200 transition duration-200 ease-in-out">
+                ⚙️ <!-- 설정 아이콘 (유니코드) -->
+            </button>
+        </header>
+
+        <!-- 메인 콘텐츠 영역 -->
+        <main class="p-8">
+            <!-- 모드 선택 화면 (초기 진입 화면) -->
+            <section id="mode-selection-screen" class="text-center">
+                <h2 class="text-3xl font-bold text-gray-800 mb-8">학습 모드를 선택해주세요</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <button class="btn-primary py-8 text-2xl" data-mode="basic-learning">기본 학습</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="large-category-learning">대분류 학습</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="medium-category-learning">중분류 학습</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="multiple-choice-learning">선택형 학습</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="true-false-learning">진위형 학습</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="mock-test">모의고사</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="learning-statistics">학습 통계</button>
+                </div>
+            </section>
+
+            <!-- 각 학습 모드별 화면 (mode-screen 클래스 추가) -->
+            <!-- 기본 학습, 선택형, 진위형 등 문제 풀이 공통 화면 -->
+            <section id="common-learning-screen" class="mode-screen">
+                <!-- 학습 통계 요약 -->
+                <div class="card mb-8 text-center">
+                    <h3 class="text-2xl font-semibold text-blue-600 mb-4">학습 현황</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-lg">
+                        <div>총 문제: <span id="total-questions" class="font-bold">0</span></div>
+                        <div>맞은 문제: <span id="correct-count" class="font-bold text-green-600">0</span></div>
+                        <div>틀린 문제: <span id="incorrect-count" class="font-bold text-red-600">0</span></div>
+                        <div>정답률: <span id="accuracy" class="font-bold">0%</span></div>
+                    </div>
+                </div>
+
+                <!-- 대분류 선택 버튼 그룹 (대분류 학습 시 활성화) -->
+                <div id="large-category-selection-area" class="card mb-8 hidden">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">대분류 선택</h3>
+                    <div id="layer1-buttons" class="flex flex-wrap justify-center gap-3">
+                        <!-- 동적으로 생성될 대분류 버튼들 -->
+                        <button class="btn-category" data-category="재산보험">재산보험</button>
+                        <button class="btn-category" data-category="특종보험">특종보험</button>
+                        <button class="btn-category" data-category="배상책임보험">배상책임보험</button>
+                        <button class="btn-category" data-category="해상보험">해상보험</button>
+                    </div>
+                </div>
+
+                <!-- 중분류 선택 버튼 그룹 (중분류 학습 시 활성화) -->
+                <div id="medium-category-selection-area" class="card mb-8 hidden">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">중분류 선택</h3>
+                    <div id="layer2-buttons" class="flex flex-wrap justify-center gap-3">
+                        <!-- 동적으로 생성될 중분류 버튼들 (예시) -->
+                        <button class="btn-category">화재보험</button>
+                        <button class="btn-category">자동차보험</button>
+                        <button class="btn-category">도난보험</button>
+                    </div>
+                </div>
+
+                <!-- 문제 내용 -->
+                <div class="card mb-8">
+                    <p class="text-lg text-gray-600 mb-2">문제 번호: <span id="question-index" class="font-semibold">0</span></p>
+                    <h3 id="question-text" class="text-xl font-medium text-gray-800 leading-relaxed min-h-[100px] flex items-center justify-center text-center">
+                        여기에 문제가 표시됩니다.
+                    </h3>
+                    <div id="answer-options" class="mt-6 space-y-3">
+                        <!-- 진위형/선택형 답안 옵션이 여기에 동적으로 표시됩니다. -->
+                        <div id="true-false-options" class="flex justify-center gap-4">
+                            <button class="btn-secondary w-24">O</button>
+                            <button class="btn-secondary w-24">X</button>
+                        </div>
+                        <div id="multiple-choice-options" class="grid grid-cols-2 gap-4 hidden">
+                            <button class="btn-secondary">1) 선택지 1</button>
+                            <button class="btn-secondary">2) 선택지 2</button>
+                            <button class="btn-secondary">3) 선택지 3</button>
+                            <button class="btn-secondary">4) 선택지 4</button>
+                        </div>
+                    </div>
+                    <div id="result-display" class="mt-4 text-center text-2xl font-bold hidden">
+                        <!-- 정답/오답 결과가 여기에 표시됩니다. -->
+                    </div>
+                </div>
+
+                <!-- 네비게이션 및 액션 버튼 -->
+                <div class="flex flex-wrap justify-center gap-4 mt-6">
+                    <button id="prev-btn" class="btn-secondary">이전 문제</button>
+                    <button id="check-answer-btn" class="btn-primary">정답 확인</button>
+                    <button id="next-btn" class="btn-primary">다음 문제</button>
+                    <button id="explain-btn" class="btn-secondary hidden">해설 보기</button>
+                </div>
+            </section>
+
+            <!-- 모의고사 화면 (별도 UI) -->
+            <section id="mock-test-screen" class="mode-screen text-center">
+                <h2 class="text-3xl font-bold text-gray-800 mb-8">모의고사</h2>
+                <div class="card mb-8">
+                    <h3 class="text-2xl font-semibold text-blue-600 mb-4">시험 현황</h3>
+                    <p class="text-xl mb-4">남은 시간: <span id="mock-test-timer" class="font-bold text-red-500">00:00</span></p>
+                    <p class="text-lg">진행률: <span id="mock-test-progress" class="font-bold">0</span> / <span id="mock-test-total-questions" class="font-bold">0</span> 문제</p>
+                </div>
+                <!-- 모의고사 문제 내용은 common-learning-screen과 공유 -->
+                <p class="text-gray-600 mb-4">모의고사 문제 내용은 상단의 일반 학습 화면과 동일하게 표시됩니다.</p>
+                <button class="btn-primary py-4 px-8 text-xl mt-6">시험 종료 및 결과 보기</button>
+            </section>
+
+            <!-- 학습 통계 화면 (별도 UI) -->
+            <section id="learning-statistics-screen" class="mode-screen text-center">
+                <h2 class="text-3xl font-bold text-gray-800 mb-8">학습 통계 대시보드</h2>
+                <div class="card mb-8">
+                    <h3 class="text-2xl font-semibold text-blue-600 mb-4">전체 학습 요약</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
+                            <p class="text-lg font-semibold">총 학습 시간</p>
+                            <p class="text-2xl font-bold text-blue-700">0시간 0분</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
+                            <p class="text-lg font-semibold">누적 문제 풀이</p>
+                            <p class="text-2xl font-bold text-blue-
