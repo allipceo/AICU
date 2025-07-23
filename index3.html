@@ -3,130 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AICU 학습앱 - V2 대분류별 문제</title>
+    <title>ACIU 학습앱 - V2.3</title>
+    <!-- Tailwind CSS 로드 -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Noto Sans KR 로드 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
-        body { font-family: 'Noto Sans KR', sans-serif; }
-        .question-container { min-height: 200px; }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* 기본 버튼 스타일 */
+        .btn-primary {
+            @apply bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ease-in-out;
+        }
+        .btn-secondary {
+            @apply bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-lg shadow-md hover:bg-gray-400 transition duration-300 ease-in-out;
+        }
+        .btn-category {
+            @apply bg-blue-500 text-white font-semibold py-2 px-4 rounded-md shadow-sm hover:bg-blue-600 transition duration-200 ease-in-out;
+        }
+        .btn-category.active {
+            @apply bg-blue-700 ring-2 ring-blue-300;
+        }
+        .card {
+            @apply bg-white p-6 rounded-xl shadow-lg;
+        }
+        .input-field {
+            @apply w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
+        }
+        /* 특정 모드 화면 숨김/표시 */
+        .mode-screen {
+            display: none; /* 기본적으로 모든 모드 화면 숨김 */
+        }
+        /* 모달 스타일 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div id="app-header" class="flex flex-wrap items-center justify-between mb-6 p-4 bg-white rounded-lg shadow">
-      <div class="flex items-center gap-4">
-        <span id="user-id-header" class="font-bold text-blue-700">User: guest</span>
-        <span id="d-day-header" class="text-sm text-gray-500">D-30</span>
-        <span id="date-header" class="text-sm text-gray-500"></span>
-      </div>
-      <div class="flex items-center gap-4">
-        <span id="daily-progress-header" class="text-sm text-gray-500">오늘 진도: 0%</span>
-        <span id="total-progress-header" class="font-bold text-blue-700">전체 진도: 0%</span>
-      </div>
-    </div>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="container mx-auto max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden my-8">
+        <!-- 상단 헤더: 앱 제목, 날짜/시간, 명언, 진도율 등 (UI V2.3) -->
+        <header class="bg-blue-700 text-white p-6 text-center rounded-t-2xl relative">
+            <h1 class="text-4xl font-bold mb-2">ACIU QUIZ</h1>
+            <p id="current-mode" class="text-xl font-semibold mb-4">모드 선택</p>
 
-    <div class="container mx-auto px-4 py-6 max-w-4xl">
-        <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">AICU 학습앱 - V2 (최종 수정본)</h1>
-
-        <div id="loading-area" class="text-center py-8">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p id="loading-status" class="text-gray-600">ins_789_final_dev.csv 파일을 불러오는 중...</p>
-            <!-- 노팀장 버전의 로딩 프로그레스 바 추가 -->
-            <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
-                <div id="loading-progress" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            <div class="text-sm md:text-base mb-4">
+                <p>사용자: <span id="user-id" class="font-bold">조대표님</span></p>
+                <p>시험까지 D-<span id="exam-countdown" class="font-bold">90</span>일</p>
+                <p><span id="current-date-time"></span></p>
+                <p id="quote-of-the-day" class="italic mt-2">"배움은 끝이 없으며, 노력은 결코 배신하지 않는다."</p>
             </div>
-        </div>
+            <div class="text-lg font-semibold flex justify-center gap-6">
+                <p>전체 학습 진도율: <span id="overall-progress-rate" class="text-yellow-300">0%</span></p>
+                <p>오늘의 학습 진도율: <span id="daily-progress-rate" class="text-yellow-300">0%</span></p>
+            </div>
 
-        <!-- 퀴즈 영역 (초기에는 숨김) -->
-        <!-- 노팀장 index.html의 quiz-area 구조를 참고하여 V2.0의 UI 요소들을 통합 -->
-        <div id="quiz-area" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
-            <!-- 문제 정보 및 문제 텍스트 -->
-            <div class="mb-4">
-                <div class="flex justify-between items-center mb-2">
-                    <span id="question-type" class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">유형</span>
-                    <span id="question-code" class="text-sm text-gray-500">QCODE</span>
+            <!-- 설정 버튼 -->
+            <button id="settings-btn" class="absolute top-4 right-4 text-white text-2xl hover:text-blue-200 transition duration-200 ease-in-out">
+                ⚙️ <!-- 설정 아이콘 (유니코드) -->
+            </button>
+        </header>
+
+        <!-- 메인 콘텐츠 영역 -->
+        <main class="p-8">
+            <!-- 모드 선택 화면 (초기 진입 화면) -->
+            <section id="mode-selection-screen" class="text-center">
+                <h2 class="text-3xl font-bold text-gray-800 mb-8">학습 모드를 선택해주세요</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <button class="btn-primary py-8 text-2xl" data-mode="basic-learning">기본 학습</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="large-category-learning">대분류 학습</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="medium-category-learning">중분류 학습</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="multiple-choice-learning">선택형 학습</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="true-false-learning">진위형 학습</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="mock-test">모의고사</button>
+                    <button class="btn-primary py-8 text-2xl" data-mode="learning-statistics">학습 통계</button>
                 </div>
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-semibold">문제</h2>
-                    <div class="text-xs text-gray-500">
-                        <span id="layer-info">LAYER1 > LAYER2</span>
+            </section>
+
+            <!-- 각 학습 모드별 화면 (mode-screen 클래스 추가) -->
+            <!-- 기본 학습, 선택형, 진위형 등 문제 풀이 공통 화면 (UI V2.3) -->
+            <section id="common-learning-screen" class="mode-screen">
+                <!-- 학습 통계 요약 -->
+                <div class="card mb-8 text-center">
+                    <h3 class="text-2xl font-semibold text-blue-600 mb-4">학습 현황</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-lg">
+                        <div>총 문제: <span id="total-questions" class="font-bold">0</span></div>
+                        <div>맞은 문제: <span id="correct-count" class="font-bold text-green-600">0</span></div>
+                        <div>틀린 문제: <span id="incorrect-count" class="font-bold text-red-600">0</span></div>
+                        <div>정답률: <span id="accuracy" class="font-bold">0%</span></div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="question-container mb-6">
-                <p id="question-text" class="text-gray-800 leading-relaxed whitespace-pre-wrap">문제를 불러오는 중...</p>
-            </div>
 
-            <!-- 답안 선택 버튼 (진위형/선택형) -->
-            <div id="true-false-buttons" class="hidden grid grid-cols-2 gap-4 mb-6">
-                <button onclick="selectAnswer('O')" class="answer-btn bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="O">O (맞다)</button>
-                <button onclick="selectAnswer('X')" class="answer-btn bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="X">X (틀리다)</button>
-            </div>
-
-            <div id="choice-buttons" class="hidden space-y-3 mb-6">
-                <button onclick="selectAnswer('1')" class="answer-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg transition duration-200" data-answer="1">1번</button>
-                <button onclick="selectAnswer('2')" class="answer-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg transition duration-200" data-answer="2">2번</button>
-                <button onclick="selectAnswer('3')" class="answer-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg transition duration-200" data-answer="3">3번</button>
-                <button onclick="selectAnswer('4')" class="answer-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg transition duration-200" data-answer="4">4번</button>
-            </div>
-
-            <!-- 결과 및 해설 표시 영역 -->
-            <div id="result-area" class="hidden mb-6 p-4 rounded-lg">
-                <p id="result-text" class="font-bold text-lg mb-2"></p>
-                <p id="correct-answer" class="text-sm text-gray-600"></p>
-                <div id="explanation-area" class="mt-3 p-3 bg-gray-50 rounded border hidden">
-                    <p class="text-sm text-gray-700" id="explanation-text"></p>
+                <!-- 대분류 선택 버튼 그룹 (대분류 학습 시 활성화) -->
+                <div id="large-category-selection-area" class="card mb-8 hidden">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">대분류 선택</h3>
+                    <div id="layer1-buttons" class="flex flex-wrap justify-center gap-3">
+                        <!-- 동적으로 생성될 대분류 버튼들 -->
+                        <button class="btn-category" data-category="재산보험">재산보험</button>
+                        <button class="btn-category" data-category="특종보험">특종보험</button>
+                        <button class="btn-category" data-category="배상책임보험">배상책임보험</button>
+                        <button class="btn-category" data-category="해상보험">해상보험</button>
+                    </div>
                 </div>
-            </div>
 
-            <!-- 컨트롤 버튼 -->
-            <div class="flex justify-between">
-                <button onclick="prevQuestion()" id="prev-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-lg transition duration-200">이전</button>
-                <button onclick="checkAnswer()" id="check-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">정답 확인</button>
-                <button onclick="nextQuestion()" id="next-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">다음</button>
-            </div>
+                <!-- 중분류 선택 버튼 그룹 (중분류 학습 시 활성화) -->
+                <div id="medium-category-selection-area" class="card mb-8 hidden">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">중분류 선택</h3>
+                    <div id="layer2-buttons" class="flex flex-wrap justify-center gap-3">
+                        <!-- 동적으로 생성될 중분류 버튼들 (예시) -->
+                        <button class="btn-category">화재보험</button>
+                        <button class="btn-category">자동차보험</button>
+                        <button class="btn-category">도난보험</button>
+                    </div>
+                </div>
 
-            <!-- 빠른 이동 및 통계 버튼 -->
-            <div class="mt-4 flex flex-wrap gap-2 justify-center">
-                <button onclick="jumpToRandom()" class="bg-purple-500 hover:bg-purple-600 text-white text-sm py-1 px-3 rounded">랜덤 문제</button>
-                <button onclick="jumpToQuestion()" class="bg-indigo-500 hover:bg-indigo-600 text-white text-sm py-1 px-3 rounded">문제 번호로 이동</button>
-                <button onclick="showStats()" class="bg-gray-500 hover:bg-gray-600 text-white text-sm py-1 px-3 rounded">상세 통계</button>
-            </div>
-        </div>
+                <!-- 문제 내용 -->
+                <div class="card mb-8">
+                    <p class="text-lg text-gray-600 mb-2">문제 번호: <span id="question-index" class="font-semibold">0</span></p>
+                    <h3 id="question-text" class="text-xl font-medium text-gray-800 leading-relaxed min-h-[100px] flex items-center justify-center text-center">
+                        여기에 문제가 표시됩니다.
+                    </h3>
+                    <div id="answer-options" class="mt-6 space-y-3">
+                        <!-- 진위형/선택형 답안 옵션이 여기에 동적으로 표시됩니다. -->
+                        <div id="true-false-options" class="flex justify-center gap-4">
+                            <button class="btn-secondary w-24">O</button>
+                            <button class="btn-secondary w-24">X</button>
+                        </div>
+                        <div id="multiple-choice-options" class="grid grid-cols-2 gap-4 hidden">
+                            <button class="btn-secondary">1) 선택지 1</button>
+                            <button class="btn-secondary">2) 선택지 2</button>
+                            <button class="btn-secondary">3) 선택지 3</button>
+                            <button class="btn-secondary">4) 선택지 4</button>
+                        </div>
+                    </div>
+                    <div id="result-display" class="mt-4 text-center text-2xl font-bold hidden">
+                        <!-- 정답/오답 결과가 여기에 표시됩니다. -->
+                    </div>
+                </div>
 
-        <!-- 통계 영역 (노팀장 index.html의 stats-area 구조를 참고하여 통합) -->
-        <div id="stats-area" class="hidden bg-white rounded-lg shadow p-4 mt-6">
-            <h3 class="font-bold mb-2">학습 통계</h3>
-            <div class="grid grid-cols-4 gap-4 text-center">
-                <div>
-                    <div id="total-answered" class="text-2xl font-bold text-blue-600">0</div>
-                    <div class="text-sm text-gray-600">푼 문제</div>
+                <!-- 네비게이션 및 액션 버튼 -->
+                <div class="flex flex-wrap justify-center gap-4 mt-6">
+                    <button id="prev-btn" class="btn-secondary">이전 문제</button>
+                    <button id="check-answer-btn" class="btn-primary">정답 확인</button>
+                    <button id="next-btn" class="btn-primary">다음 문제</button>
+                    <button id="explain-btn" class="btn-secondary hidden">해설 보기</button>
                 </div>
-                <div>
-                    <div id="correct-count" class="text-2xl font-bold text-green-600">0</div>
-                    <div class="text-sm text-gray-600">정답</div>
-                </div>
-                <div>
-                    <div id="accuracy" class="text-2xl font-bold text-purple-600">0%</div>
-                    <div class="text-sm text-gray-600">정답률</div>
-                </div>
-                <div>
-                    <div id="remaining" class="text-2xl font-bold text-orange-600">0</div>
-                    <div class="text-sm text-gray-600">남은 문제</div>
-                </div>
-            </div>
-        </div>
+            </section>
 
-        <!-- 파일 정보 -->
-        <div class="mt-4 text-center text-sm text-gray-500">
-            <p>데이터 소스: <span id="data-source">ins_789_final_dev.csv</span></p>
-            <p>로드된 문제 수: <span id="loaded-count">0</span>개</p>
-            <p class="mt-2 text-xs">🌐 GitHub Pages 또는 로컬 웹서버에서 완벽 동작</p>
+            <!-- 모의고사 화면 (별도 UI) -->
+            <section id="mock-test-screen" class="mode-screen text-center">
+                <h2 class="text-3xl font-bold text-gray-800 mb-8">모의고사</h2>
+                <div class="card mb-8">
+                    <h3 class="text-2xl font-semibold text-blue-600 mb-4">시험 현황</h3>
+                    <p class="text-xl mb-4">남은 시간: <span id="mock-test-timer" class="font-bold text-red-500">00:00</span></p>
+                    <p class="text-lg">진행률: <span id="mock-test-progress" class="font-bold">0</span> / <span id="mock-test-total-questions" class="font-bold">0</span> 문제</p>
+                </div>
+                <!-- 모의고사 문제 내용은 common-learning-screen과 공유 -->
+                <p class="text-gray-600 mb-4">모의고사 문제 내용은 상단의 일반 학습 화면과 동일하게 표시됩니다.</p>
+                <button class="btn-primary py-4 px-8 text-xl mt-6">시험 종료 및 결과 보기</button>
+            </section>
+
+            <!-- 학습 통계 화면 (별도 UI) -->
+            <section id="learning-statistics-screen" class="mode-screen text-center">
+                <h2 class="text-3xl font-bold text-gray-800 mb-8">학습 통계 대시보드</h2>
+                <div class="card mb-8">
+                    <h3 class="text-2xl font-semibold text-blue-600 mb-4">전체 학습 요약</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
+                            <p class="text-lg font-semibold">총 학습 시간</p>
+                            <p class="text-2xl font-bold text-blue-700">0시간 0분</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
+                            <p class="text-lg font-semibold">누적 문제 풀이</p>
+                            <p class="text-2xl font-bold text-blue-700">0문제</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
+                            <p class="text-lg font-semibold">전체 정답률</p>
+                            <p class="text-2xl font-bold text-green-600">0%</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-sm">
+                            <p class="text-lg font-semibold">가장 취약한 대분류</p>
+                            <p class="text-2xl font-bold text-red-600">N/A</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-8">
+                    <h3 class="text-2xl font-semibold text-blue-600 mb-4">영역별 성과 (차트 Placeholder)</h3>
+                    <div class="bg-gray-200 h-64 flex items-center justify-center rounded-lg text-gray-500">
+                        여기에 영역별 정답률 차트가 표시됩니다. (예: 막대 그래프)
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="text-2xl font-semibold text-blue-600 mb-4">오답 노트 요약 (Placeholder)</h3>
+                    <div class="bg-gray-200 h-32 flex items-center justify-center rounded-lg text-gray-500">
+                        여기에 오답 문제 유형별 분석 또는 목록 요약이 표시됩니다.
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 하단 푸터 (선택 사항) -->
+        <footer class="bg-gray-200 text-gray-600 p-4 text-center text-sm rounded-b-2xl mt-8">
+            <p>&copy; 2025 ACIU QUIZ App. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- 설정 모달 -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-content text-center">
+            <h3 class="text-2xl font-bold text-blue-700 mb-6">설정</h3>
+            <div class="grid grid-cols-1 gap-4">
+                <button class="btn-primary py-4 text-xl">사용자 등록</button>
+                <button class="btn-primary py-4 text-xl">사용법</button>
+                <button class="btn-primary py-4 text-xl">시험 개요</button>
+            </div>
+            <button class="btn-secondary mt-6" onclick="this.parentNode.parentNode.classList.add('hidden'); this.parentNode.parentNode.classList.remove('show');">닫기</button>
         </div>
     </div>
 
     <script>
-        // 전역 변수 (노팀장 index.html과 동일하게 초기화)
+        // 전역 변수 (노팀장 index.html과 V2.3 UI에 맞춰 초기화)
         let questions = [];
         let currentQuestionIndex = 0;
         let selectedAnswer = null;
@@ -135,6 +266,42 @@
             totalAnswered: 0,
             correctCount: 0
         };
+
+        // UI 요소 참조 (UI V2.3에 맞춰 추가)
+        const modeSelectionScreen = document.getElementById('mode-selection-screen');
+        const commonLearningScreen = document.getElementById('common-learning-screen');
+        const mockTestScreen = document.getElementById('mock-test-screen');
+        const learningStatisticsScreen = document.getElementById('learning-statistics-screen');
+
+        const currentModeDisplay = document.getElementById('current-mode');
+        const largeCategorySelectionArea = document.getElementById('large-category-selection-area');
+        const mediumCategorySelectionArea = document.getElementById('medium-category-selection-area');
+        const trueFalseOptions = document.getElementById('true-false-buttons'); // ID 일치
+        const multipleChoiceOptions = document.getElementById('choice-buttons'); // ID 일치
+
+        const layer1Buttons = document.getElementById('layer1-buttons'); // 대분류 버튼 컨테이너
+
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+
+        // 모든 모드 화면 숨기는 함수 (UI V2.3)
+        function hideAllModeScreens() {
+            modeSelectionScreen.classList.add('hidden'); // 모드 선택 화면도 숨김
+            commonLearningScreen.classList.add('hidden');
+            largeCategorySelectionArea.classList.add('hidden');
+            mediumCategorySelectionArea.classList.add('hidden');
+            mockTestScreen.classList.add('hidden');
+            learningStatisticsScreen.classList.add('hidden');
+        }
+
+        // 날짜 및 시간 업데이트 함수 (UI V2.3)
+        function updateDateTime() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            document.getElementById('current-date-time').textContent = now.toLocaleDateString('ko-KR', options);
+        }
+        setInterval(updateDateTime, 1000); // 1초마다 업데이트
+        updateDateTime(); // 초기 로드 시 바로 업데이트
 
         // CSV 파일 로딩 함수 (노팀장 index.html과 동일)
         async function loadCSVData() {
@@ -145,7 +312,6 @@
                 loadingStatus.textContent = "ins_789_final_dev.csv 파일 다운로드 중...";
                 loadingProgress.style.width = "10%";
                 
-                // ins_789_final_dev.csv 사용
                 const response = await fetch('ins_789_final_dev.csv');
                 
                 if (!response.ok) {
@@ -160,18 +326,17 @@
                 loadingStatus.textContent = "문제 데이터 처리 중...";
                 loadingProgress.style.width = "80%";
                 
-                // PapaParse로 CSV 파싱 (대용량 최적화)
                 const parsed = Papa.parse(csvContent, {
                     header: true,
                     dynamicTyping: false,
                     skipEmptyLines: true,
                     delimiter: ',',
                     quoteChar: '"',
-                    fastMode: true // 대용량 파일 최적화
+                    fastMode: true
                 });
                 
                 if (parsed.errors.length > 0) {
-                    console.warn('CSV 파싱 경고:', parsed.errors.slice(0, 5)); // 처음 5개만 표시
+                    console.warn('CSV 파싱 경고:', parsed.errors.slice(0, 5));
                 }
                 
                 // 인스교재 문제만 필터링 및 유효성 검사 (노팀장 index.html과 동일)
@@ -187,10 +352,10 @@
                 
                 // UI 업데이트 (노팀장 index.html과 동일)
                 document.getElementById('loaded-count').textContent = questions.length;
-                document.getElementById('remaining').textContent = questions.length; // 남은 문제 초기화
+                document.getElementById('remaining').textContent = questions.length;
                 
-                // 로딩 완료 후 앱 시작 (노팀장 index.html과 동일)
-                setTimeout(startQuiz, 1000);
+                // 로딩 완료 후 앱 시작 (UI V2.3의 모드 선택 화면으로 전환)
+                setTimeout(startAppWithModeSelection, 1000); // UI V2.3의 시작 함수 호출
                 
             } catch (error) {
                 console.error('CSV 로딩 오류:', error);
@@ -205,25 +370,81 @@
             }
         }
 
-        // 퀴즈 시작 (노팀장 index.html과 동일)
-        function startQuiz() {
+        // 앱 시작 함수 (UI V2.3의 모드 선택 화면으로 전환)
+        function startAppWithModeSelection() {
             document.getElementById('loading-area').classList.add('hidden');
-            // index3.html에는 progress-area가 없으므로 quiz-area와 stats-area를 바로 표시
-            document.getElementById('quiz-area').classList.remove('hidden');
-            document.getElementById('stats-area').classList.remove('hidden');
-            
-            displayQuestion();
-            updateStats();
+            modeSelectionScreen.classList.remove('hidden'); // 모드 선택 화면 표시
+            currentModeDisplay.textContent = '모드 선택'; // 헤더 모드 초기화
+            updateStats(); // 통계 초기 업데이트
         }
 
-        // 문제 표시 (노팀장 index.html과 동일)
+        // 퀴즈 시작 (선택된 모드에 따라 문제 표시)
+        // 이 함수는 모드 선택 버튼 클릭 시 호출됩니다.
+        function startQuizInMode(modeId, modeText) {
+            hideAllModeScreens(); // 모든 화면 숨김
+            currentModeDisplay.textContent = modeText; // 헤더 모드 업데이트
+
+            if (modeId === 'basic-learning' || modeId === 'multiple-choice-learning' || modeId === 'true-false-learning' || modeId === 'large-category-learning' || modeId === 'medium-category-learning') {
+                commonLearningScreen.classList.remove('hidden'); // 공통 학습 화면 표시
+                
+                // 문제 데이터 초기화 및 필터링 (각 모드에 맞게)
+                // 현재는 모든 문제를 filteredQuestions에 할당 (기본 학습)
+                // 향후 각 모드별 로직 (대분류 필터링, 오답 필터링 등)이 여기에 추가됩니다.
+                filteredQuestions = questions; 
+                currentQuestionIndex = 0; // 항상 첫 문제부터 시작
+                displayQuestion(); // 첫 문제 표시
+                updateStats(); // 통계 업데이트
+
+                if (modeId === 'large-category-learning') {
+                    largeCategorySelectionArea.classList.remove('hidden');
+                    // 대분류 버튼 동적 생성 및 클릭 이벤트는 서대리님이 구현
+                } else if (modeId === 'medium-category-learning') {
+                    largeCategorySelectionArea.classList.remove('hidden');
+                    mediumCategorySelectionArea.classList.remove('hidden');
+                    // 중분류 버튼 동적 생성 및 클릭 이벤트는 서대리님이 구현
+                }
+
+                if (modeId === 'multiple-choice-learning') {
+                    multipleChoiceOptions.classList.remove('hidden');
+                    trueFalseOptions.classList.add('hidden');
+                } else if (modeId === 'true-false-learning') {
+                    trueFalseOptions.classList.remove('hidden');
+                    multipleChoiceOptions.classList.add('hidden');
+                } else { // 기본 학습, 대분류, 중분류 등은 문제 유형에 따라 동적 변경될 예정
+                    // displayQuestion 함수에서 question.TYPE에 따라 답안 옵션 표시
+                    trueFalseOptions.classList.add('hidden'); // 일단 숨김
+                    multipleChoiceOptions.classList.add('hidden'); // 일단 숨김
+                }
+
+            } else if (modeId === 'mock-test') {
+                mockTestScreen.classList.remove('hidden');
+                commonLearningScreen.classList.remove('hidden'); // 모의고사도 문제 풀이 UI는 공유
+                // 모의고사 문제 추출 및 타이머 로직은 서대리님이 구현
+                filteredQuestions = questions.slice(0, 20); // 임시 20문제 (랜덤 추출 로직은 서대리님 구현)
+                currentQuestionIndex = 0;
+                displayQuestion();
+                updateStats();
+                document.getElementById('mock-test-timer').textContent = '25:00'; // 임시
+                document.getElementById('mock-test-progress').textContent = '0'; // 임시
+                document.getElementById('mock-test-total-questions').textContent = '20'; // 임시
+            } else if (modeId === 'learning-statistics') {
+                learningStatisticsScreen.classList.remove('hidden');
+                // 학습 통계 대시보드 데이터 로딩 및 표시 로직은 서대리님이 구현
+            }
+        }
+
+
+        // 문제 표시 (노팀장 index.html과 동일 + V2.3 UI에 맞춰 업데이트)
         function displayQuestion() {
-            if (questions.length === 0) {
-                document.getElementById('question-text').textContent = "문제를 불러올 수 없습니다.";
+            if (filteredQuestions.length === 0) { // filteredQuestions 사용
+                document.getElementById('question-text').textContent = "문제를 불러올 수 없습니다. 선택된 모드에 해당하는 문제가 없습니다.";
+                // 답안 버튼 숨김
+                trueFalseOptions.classList.add('hidden');
+                multipleChoiceOptions.classList.add('hidden');
                 return;
             }
 
-            const question = questions[currentQuestionIndex];
+            const question = filteredQuestions[currentQuestionIndex]; // filteredQuestions 사용
             
             // 문제 정보 업데이트
             document.getElementById('question-type').textContent = question.TYPE;
@@ -231,26 +452,29 @@
             document.getElementById('question-text').textContent = question.QUESTION;
             
             // 분류 정보 표시
-            document.getElementById('layer-info').textContent = `${question.LAYER1} > ${question.LAYER2}`;
-            
-            // 진행률 업데이트 (index3.html에는 progress-text, progress-bar 없음)
-            // V2.0의 진도율 헤더와 연동될 예정이므로 여기서는 생략
-            
-            // 답안 버튼 표시/숨김
+            document.getElementById('layer-info').textContent = `${question.LAYER1 || 'N/A'} > ${question.LAYER2 || 'N/A'}`; // LAYER1, LAYER2 없을 경우 N/A 표시
+
+            // 답안 버튼 표시/숨김 (문제 TYPE에 따라)
+            trueFalseOptions.classList.add('hidden');
+            multipleChoiceOptions.classList.add('hidden');
             if (question.TYPE === '진위형') {
-                document.getElementById('true-false-buttons').classList.remove('hidden');
-                document.getElementById('choice-buttons').classList.add('hidden');
-            } else { // 선택형
-                document.getElementById('true-false-buttons').classList.add('hidden');
-                document.getElementById('choice-buttons').classList.remove('hidden');
+                trueFalseOptions.classList.remove('hidden');
+            } else if (question.TYPE === '선택형') { // 선택형
+                multipleChoiceOptions.classList.remove('hidden');
+                // 선택지 텍스트 업데이트 (필요시)
+                document.querySelector('#choice-buttons button[data-answer="1"]').textContent = `1) ${question['1ST'] || ''}`;
+                document.querySelector('#choice-buttons button[data-answer="2"]').textContent = `2) ${question['2ND'] || ''}`;
+                document.querySelector('#choice-buttons button[data-answer="3"]').textContent = `3) ${question['3RD'] || ''}`;
+                document.querySelector('#choice-buttons button[data-answer="4"]').textContent = `4) ${question['4TH'] || ''}`;
             }
             
             // 상태 초기화
             selectedAnswer = null;
             answered = false;
-            document.getElementById('result-area').classList.add('hidden');
+            document.getElementById('result-display').classList.add('hidden'); // V2.3 ID
             document.getElementById('explanation-area').classList.add('hidden');
-            document.getElementById('check-btn').classList.remove('hidden');
+            document.getElementById('check-answer-btn').classList.remove('hidden'); // V2.3 ID
+            document.getElementById('explain-btn').classList.add('hidden'); // V2.3 ID
             
             // 버튼 스타일 초기화
             document.querySelectorAll('.answer-btn').forEach(btn => {
@@ -260,7 +484,7 @@
             
             // 이전/다음 버튼 상태
             document.getElementById('prev-btn').disabled = currentQuestionIndex === 0;
-            document.getElementById('next-btn').style.display = answered ? 'block' : 'none'; // '다음' 버튼은 정답 확인 후 표시
+            document.getElementById('next-btn').style.display = 'block'; // 항상 표시
         }
 
         // 답안 선택 (노팀장 index.html과 동일)
@@ -269,51 +493,43 @@
             
             selectedAnswer = answer;
             
-            // 모든 버튼 스타일 초기화
             document.querySelectorAll('.answer-btn').forEach(btn => {
                 btn.classList.remove('bg-blue-200', 'border-blue-500', 'border-2');
             });
             
-            // 선택된 버튼 강조
             document.querySelector(`[data-answer="${answer}"]`).classList.add('bg-blue-200', 'border-blue-500', 'border-2');
         }
 
-        // 정답 확인 (노팀장 index.html과 동일)
+        // 정답 확인 (노팀장 index.html과 동일 + V2.3 UI에 맞춰 업데이트)
         function checkAnswer() {
             if (!selectedAnswer || answered) return;
             
-            const question = questions[currentQuestionIndex];
+            const question = filteredQuestions[currentQuestionIndex]; // filteredQuestions 사용
             const isCorrect = selectedAnswer === question.ANSWER;
             
             answered = true;
             stats.totalAnswered++;
             if (isCorrect) stats.correctCount++;
             
-            // 결과 표시
-            const resultArea = document.getElementById('result-area');
-            const resultText = document.getElementById('result-text');
-            const correctAnswerText = document.getElementById('correct-answer');
+            const resultDisplay = document.getElementById('result-display'); // V2.3 ID
             
             if (isCorrect) {
-                resultText.textContent = '정답입니다! 🎉';
-                resultText.className = 'font-bold text-lg mb-2 text-green-600';
-                resultArea.className = 'mb-6 p-4 rounded-lg bg-green-50 border border-green-200';
+                resultDisplay.textContent = '정답입니다! 🎉';
+                resultDisplay.className = 'mt-4 text-center text-2xl font-bold text-green-600';
             } else {
-                resultText.textContent = '오답입니다 😔';
-                resultText.className = 'font-bold text-lg mb-2 text-red-600';
-                resultArea.className = 'mb-6 p-4 rounded-lg bg-red-50 border border-red-200';
-                correctAnswerText.textContent = `정답: ${question.ANSWER}`;
+                resultDisplay.textContent = '오답입니다 😔';
+                resultDisplay.className = 'mt-4 text-center text-2xl font-bold text-red-600';
+                // V2.3에서는 별도 correct-answer 요소 없음, 필요시 추가
             }
             
             // 해설 표시 (있는 경우)
             if (question.EXPLAIN && question.EXPLAIN.trim() !== '') {
-                document.getElementById('explanation-text').textContent = question.EXPLAIN;
-                document.getElementById('explanation-area').classList.remove('hidden');
+                // LLM 해설 연동 예정이므로, '해설 보기' 버튼 활성화
+                document.getElementById('explain-btn').classList.remove('hidden'); // V2.3 ID
             }
             
-            resultArea.classList.remove('hidden');
-            document.getElementById('check-btn').classList.add('hidden');
-            document.getElementById('next-btn').style.display = 'block';
+            resultDisplay.classList.remove('hidden');
+            document.getElementById('check-answer-btn').classList.add('hidden'); // V2.3 ID
             
             // 정답 표시
             document.querySelectorAll('.answer-btn').forEach(btn => {
@@ -328,18 +544,21 @@
             updateStats();
         }
 
-        // 다음 문제 (노팀장 index.html과 동일)
+        // 다음 문제 (노팀장 index.html과 동일 + filteredQuestions 사용)
         function nextQuestion() {
-            if (currentQuestionIndex < questions.length - 1) {
+            if (currentQuestionIndex < filteredQuestions.length - 1) {
                 currentQuestionIndex++;
                 displayQuestion();
             } else {
                 // V2.0에서는 모드별 종료 처리 필요 (예: 모의고사 종료 화면)
-                alert('모든 문제를 완료했습니다! 🎉🎉🎉'); 
+                alert('이 모드의 모든 문제를 완료했습니다! 🎉🎉🎉'); 
+                // 모드 선택 화면으로 돌아가는 로직 추가 (임시)
+                hideAllModeScreens();
+                modeSelectionScreen.classList.remove('hidden');
             }
         }
 
-        // 이전 문제 (노팀장 index.html과 동일)
+        // 이전 문제 (노팀장 index.html과 동일 + filteredQuestions 사용)
         function prevQuestion() {
             if (currentQuestionIndex > 0) {
                 currentQuestionIndex--;
@@ -347,18 +566,18 @@
             }
         }
 
-        // 랜덤 문제로 이동 (노팀장 index.html과 동일)
+        // 랜덤 문제로 이동 (노팀장 index.html과 동일 + filteredQuestions 사용)
         function jumpToRandom() {
-            currentQuestionIndex = Math.floor(Math.random() * questions.length);
+            currentQuestionIndex = Math.floor(Math.random() * filteredQuestions.length);
             displayQuestion();
         }
 
-        // 문제 번호로 이동 (노팀장 index.html과 동일)
+        // 문제 번호로 이동 (노팀장 index.html과 동일 + filteredQuestions 사용)
         function jumpToQuestion() {
-            const questionNum = prompt(`문제 번호를 입력하세요 (1-${questions.length}):`);
+            const questionNum = prompt(`문제 번호를 입력하세요 (1-${filteredQuestions.length}):`);
             if (questionNum) {
                 const num = parseInt(questionNum) - 1;
-                if (num >= 0 && num < questions.length) {
+                if (num >= 0 && num < filteredQuestions.length) {
                     currentQuestionIndex = num;
                     displayQuestion();
                 } else {
@@ -367,21 +586,35 @@
             }
         }
 
-        // 상세 통계 표시 (노팀장 index.html과 동일)
+        // 상세 통계 표시 (노팀장 index.html과 동일 + V2.3 UI에 맞춰 업데이트)
         function showStats() {
-            const remaining = questions.length - stats.totalAnswered;
+            const remaining = filteredQuestions.length - stats.totalAnswered;
             const accuracy = stats.totalAnswered > 0 ? Math.round((stats.correctCount / stats.totalAnswered) * 100) : 0;
             
-            alert(`상세 통계\n총 문제: ${questions.length}개\n푼 문제: ${stats.totalAnswered}개\n정답: ${stats.correctCount}개\n오답: ${stats.totalAnswered - stats.correctCount}개\n정답률: ${accuracy}%\n남은 문제: ${remaining}개`);
+            // V2.3 UI의 학습 통계 화면으로 전환 (임시)
+            hideAllModeScreens();
+            learningStatisticsScreen.classList.remove('hidden');
+            currentModeDisplay.textContent = '학습 통계';
+            // 실제 통계 데이터 업데이트는 서대리님이 구현
+            document.querySelector('#learning-statistics-screen .card h3').textContent = '현재 모드 학습 통계';
+            document.querySelector('#learning-statistics-screen #total-answered-stats').textContent = stats.totalAnswered;
+            document.querySelector('#learning-statistics-screen #correct-count-stats').textContent = stats.correctCount;
+            document.querySelector('#learning-statistics-screen #accuracy-stats').textContent = accuracy + '%';
+            // 나머지 통계 요소들도 업데이트 필요
         }
 
-        // 통계 업데이트 (노팀장 index.html과 동일)
+        // 통계 업데이트 (노팀장 index.html과 동일 + V2.3 UI에 맞춰 업데이트)
         function updateStats() {
+            document.getElementById('total-questions').textContent = filteredQuestions.length; // 총 문제 수
             document.getElementById('total-answered').textContent = stats.totalAnswered;
             document.getElementById('correct-count').textContent = stats.correctCount;
             const accuracy = stats.totalAnswered > 0 ? Math.round((stats.correctCount / stats.totalAnswered) * 100) : 0;
             document.getElementById('accuracy').textContent = accuracy + '%';
-            document.getElementById('remaining').textContent = questions.length - stats.totalAnswered;
+            document.getElementById('remaining').textContent = filteredQuestions.length - stats.totalAnswered;
+            
+            // 헤더의 전체/일일 진도율 업데이트 (임시)
+            document.getElementById('overall-progress-rate').textContent = `${accuracy}%`; // 임시로 정답률 사용
+            document.getElementById('daily-progress-rate').textContent = `${accuracy}%`; // 임시로 정답률 사용
         }
 
         // 키보드 단축키 (노팀장 index.html과 동일)
@@ -389,13 +622,58 @@
             if (e.key === 'ArrowLeft') prevQuestion();
             if (e.key === 'ArrowRight') nextQuestion();
             if (e.key === 'Enter') checkAnswer();
-            if (e.key === '1') selectAnswer('1');
-            if (e.key === '2') selectAnswer('2');
-            if (e.key === '3') selectAnswer('3');
-            if (e.key === '4') selectAnswer('4');
+            // 숫자 키 입력으로 답안 선택 (선택형/진위형 모두 지원)
+            if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') selectAnswer(e.key);
             if (e.key === 'o' || e.key === 'O') selectAnswer('O');
             if (e.key === 'x' || e.key === 'X') selectAnswer('X');
             if (e.key === 'r' || e.key === 'R') jumpToRandom();
+            // ESC 키로 모드 선택 화면으로 돌아가기 (추가)
+            if (e.key === 'Escape') {
+                hideAllModeScreens();
+                modeSelectionScreen.classList.remove('hidden');
+                currentModeDisplay.textContent = '모드 선택';
+            }
+        });
+
+        // 모드 선택 버튼 클릭 이벤트 리스너 (UI V2.3)
+        document.querySelectorAll('#mode-selection-screen button').forEach(button => {
+            button.addEventListener('click', () => {
+                const modeText = button.textContent.trim();
+                const modeId = button.dataset.mode;
+                startQuizInMode(modeId, modeText); // 새로운 시작 함수 호출
+            });
+        });
+
+        // 설정 버튼 클릭 이벤트 (UI V2.3)
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('hidden');
+            settingsModal.classList.add('show');
+        });
+
+        // 모달 외부 클릭 시 닫기 (UI V2.3)
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.classList.remove('show');
+                settingsModal.classList.add('hidden');
+            }
+        });
+
+        // 해설 보기 버튼 클릭 이벤트 (UI V2.3)
+        document.getElementById('explain-btn').addEventListener('click', () => {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background-color: rgba(0,0,0,0.5); display: flex;
+                justify-content: center; align-items: center; z-index: 1000;
+            `;
+            modal.innerHTML = `
+                <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full text-center">
+                    <h4 class="text-2xl font-bold mb-4 text-blue-700">해설</h4>
+                    <p class="text-gray-700 mb-6">여기에 LLM 기반의 해설이 표시될 예정입니다.</p>
+                    <button class="btn-primary" onclick="this.parentNode.parentNode.classList.add('hidden'); this.parentNode.parentNode.classList.remove('show');">닫기</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
         });
 
         // 페이지 로드 시 CSV 데이터 로딩 시작 (노팀장 index.html과 동일)
