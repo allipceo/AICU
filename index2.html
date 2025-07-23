@@ -190,7 +190,7 @@
                 if (parsed.errors.length > 0) {
                     console.warn('CSV 파싱 경고:', parsed.errors.slice(0, 5));
                 }
-                questions = parsed.data.filter(row => row.QCODE && row.QUESTION && row.LAYER1);
+                questions = parsed.data.filter(row => row.QCODE);
                 // LAYER1 값 추출 및 버튼 생성
                 const layer1Set = new Set(questions.map(q => q.LAYER1 && q.LAYER1.trim()).filter(Boolean));
                 layer1List = Array.from(layer1Set).sort();
