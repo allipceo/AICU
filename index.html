@@ -166,7 +166,7 @@
         async function loadCSVData() {
             loadingStatus.textContent = "CSV 데이터 로딩 중...";
             try {
-                const response = await fetch('ins_20_sample.csv');
+                const response = await fetch('ins_789_final.csv');
                 const csvContent = await response.text();
                 const parsed = Papa.parse(csvContent, {
                     header: true,
