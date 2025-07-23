@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AICU 학습 앱 (최신 UI)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Inter 폰트 적용 (일반적인 산세리프 폰트로 대체) */
+        body {
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+        }
+        /* 커스텀 스크롤바 (선택 사항) */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e0e0e0;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
+    <div id="app-container" class="bg-white rounded-lg shadow-xl p-6 sm:p-8 lg:p-10 w-full max-w-4xl border border-gray-200">
+        <h1 class="text-3xl sm:text-4xl font-bold text-center text-blue-700 mb-6 sm:mb-8">AICU 학습 앱</h1>
+
+        <!-- 로딩 스피너 -->
+        <div id="loading-spinner" class="flex flex-col items-center justify-center h-48">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+            <p class="text-gray-600 text-lg">데이터를 불러오는 중...</p>
+            <p id="loading-status" class="text-gray-500 text-sm mt-2"></p>
+        </div>
+
+        <!-- 퀴즈 영역 -->
+        <div id="quiz-area" class="hidden">
+            <!-- 학습 모드 선택 및 대분류 선택 드롭다운 -->
+            <div class="mb-6 flex flex-col sm:flex-row justify-center items-center gap-4">
+                <select id="learning-mode-select" class="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="basic">기본 모드 (순서대로)</option>
+                    <option value="incorrect">오답 노트 (틀린 문제)</option>
+                    <option value="layer1_select">대분류별 문제 제시</option>
+                    <!-- 향후 추가될 모드들 -->
+                </select>
+                <select id="layer1-select" class="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 hidden">
+                    <!-- 옵션은 JavaScript에서 동적으로 채워집니다. -->
+                </select>
+            </div>
+
+            <div class="mb-6">
+                <p id="question-number" class="text-sm text-gray-500 mb-2">문제 ? / ?</p>
+                <div class="bg-blue-50 p-4 rounded-md border border-blue-200">
+                    <!-- QUESTION 필드의 내용을 어떤 파싱 없이 그대로 표시 -->
+                    <p id="question-text" class="text-lg sm:text-xl font-medium text-gray-800 whitespace-pre-wrap">문제 텍스트 로딩 중...</p>
+                </div>
+            </div>
+
+            <!-- 선택형 문제 보기 (고정된 1, 2, 3, 4 버튼) -->
+            <div id="options-container" class="space-y-3 mb-6 hidden"> 
+                <button class="option-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg shadow-sm transition duration-200 ease-in-out transform hover:scale-105" data-option="1">1</button>
+                <button class="option-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg shadow-sm transition duration-200 ease-in-out transform hover:scale-105" data-option="2">2</button>
+                <button class="option-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg shadow-sm transition duration-200 ease-in-out transform hover:scale-105" data-option="3">3</button>
+                <button class="option-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg shadow-sm transition duration-200 ease-in-out transform hover:scale-105" data-option="4">4</button>
+            </div>
+
+            <!-- 진위형 문제 보기 (O, X 버튼) -->
+            <div id="true-false-container" class="hidden flex flex-col sm:flex-row gap-4 mb-6">
+                <button class="true-false-btn w-full sm:w-1/2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105" data-answer="O">O (맞다)</button>
+                <button class="true-false-btn w-full sm:w-1/2 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105" data-answer="X">X (틀리다)</button>
+            </div>
+
+            <!-- 결과 메시지 및 해설 -->
+            <div id="feedback-area" class="hidden mt-4 p-4 rounded-md border text-center">
+                <p id="feedback-message" class="font-bold text-lg mb-2"></p>
+                <div id="explanation-text" class="text-gray-700 text-sm sm:text-base whitespace-pre-wrap text-left bg-gray-50 p-3 rounded-md border border-gray-200"></div>
+                <button id="generate-explanation-btn" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hidden">해설 생성 (AI)</button>
+                <button id="next-question-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">다음 문제</button>
+            </div>
+
+            <!-- 컨트롤 버튼 (이전/정답확인) -->
+            <div class="flex justify-between mt-6">
+                <button id="prev-question-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">이전 문제</button>
+                <button id="submit-answer-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">정답 확인</button>
+            </div>
+            
+            <!-- 학습 정보 표시 (디버깅 및 모니터링용) -->
+            <div class="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700">
+                <h3 class="font-bold text-base mb-2">현재 문제 학습 정보:</h3>
+                <p>시도 횟수: <span id="info-attempts">0</span></p>
+                <p>정답 횟수: <span id="info-correct-attempts">0</span></p>
+                <p>오답 횟수: <span id="info-incorrect-attempts">0</span></p>
+                <p>난이도: <span id="info-difficulty">미정</span></p>
+                <p>마지막 풀이: <span id="info-last-attempt">없음</span></p>
+                <p>다음 복습일: <span id="info-next-review">없음</span></p>
+                <p class="mt-2 text-xs text-gray-400">사용자 ID: <span id="user-id">로딩 중...</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase SDK import
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables for Firebase (provided by Canvas environment)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app;
+        let db;
+        let auth;
+        let userId = 'loading'; // Default user ID until authenticated
+        let isAuthReady = false; // Firebase 인증 준비 상태
+
+        // 문제 데이터를 저장할 배열 (CSV에서 로드)
+        let questions = [];
+        
+        let currentQuestionIndex = 0; 
+        const instMaterialQuestions = questions.filter(q => q.SOURCE === '인스교재'); 
+
+        let currentMode = 'basic'; // 현재 학습 모드 (기본값: 순서대로)
+        let currentLayer1 = '전체'; // 현재 선택된 대분류 (기본값: 전체)
+
+        // DOM 요소 가져오기
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const loadingStatus = document.getElementById('loading-status');
+        const quizArea = document.getElementById('quiz-area');
+        const questionNumberElem = document.getElementById('question-number');
+        const questionTextElem = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const trueFalseContainer = document.getElementById('true-false-container');
+        const submitAnswerBtn = document.getElementById('submit-answer-btn');
+        const prevQuestionBtn = document.getElementById('prev-question-btn');
+        const nextQuestionBtn = document.getElementById('next-question-btn');
+        const feedbackArea = document.getElementById('feedback-area');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const explanationText = document.getElementById('explanation-text');
+        const generateExplanationBtn = document.getElementById('generate-explanation-btn');
+        const learningModeSelect = document.getElementById('learning-mode-select'); 
+        const layer1Select = document.getElementById('layer1-select'); 
+
+        // 학습 정보 표시 요소
+        const infoAttempts = document.getElementById('info-attempts');
+        const infoCorrectAttempts = document.getElementById('info-correct-attempts');
+        const infoIncorrectAttempts = document.getElementById('info-incorrect-attempts');
+        const infoDifficulty = document.getElementById('info-difficulty');
+        const infoLastAttempt = document.getElementById('info-last-attempt');
+        const infoNextReview = document.getElementById('info-next-review');
+        const userIdDisplay = document.getElementById('user-id');
+
+
+        // Firebase 초기화 및 인증
+        // CSV 데이터 로딩 함수
+        async function loadCSVData() {
+            loadingStatus.textContent = "CSV 데이터 로딩 중...";
+            try {
+                // Canvas 환경에서 파일 읽기
+                const csvContent = await window.fs.readFile('ins_789_final.csv', { encoding: 'utf8' });
+                
+                // CSV 파싱 (간단한 파싱 로직)
+                const lines = csvContent.trim().split(/\r?\n/);
+                const headers = lines[0].split(',');
+                const data = [];
+                
+                for (let i = 1; i < lines.length; i++) {
+                    const values = [];
+                    let current = '';
+                    let inQuotes = false;
+                    
+                    for (let j = 0; j < lines[i].length; j++) {
+                        const char = lines[i][j];
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            values.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    values.push(current.trim());
+                    
+                    if (values.length === headers.length) {
+                        const row = {};
+                        headers.forEach((header, index) => {
+                            row[header] = values[index];
+                        });
+                        
+                        // 학습 데이터 필드 추가
+                        row.attempts = 0;
+                        row.correctAttempts = 0;
+                        row.incorrectAttempts = 0;
+                        row.lastAttemptDate = null;
+                        row.difficulty = '미정';
+                        row.nextReviewDate = null;
+                        row.attemptCountForDifficulty = 0;
+                        
+                        data.push(row);
+                    }
+                }
+                
+                questions = data;
+                console.log(`✅ CSV 로딩 완료: ${questions.length}개 문제`);
+                loadingStatus.textContent = `CSV 로딩 완료: ${questions.length}개 문제`;
+                
+            } catch (error) {
+                console.error('CSV 로딩 오류:', error);
+                loadingStatus.textContent = `CSV 로딩 실패: ${error.message}`;
+                // 대안: 로컬 환경 처리
+                try {
+                    const response = await fetch('ins_789_final.csv');
+                    const csvContent = await response.text();
+                    
+                    // 동일한 파싱 로직 적용
+                    const lines = csvContent.trim().split(/\r?\n/);
+                    const headers = lines[0].split(',');
+                    const data = [];
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = [];
+                        let current = '';
+                        let inQuotes = false;
+                        
+                        for (let j = 0; j < lines[i].length; j++) {
+                            const char = lines[i][j];
+                            if (char === '"') {
+                                inQuotes = !inQuotes;
+                            } else if (char === ',' && !inQuotes) {
+                                values.push(current.trim());
+                                current = '';
+                            } else {
+                                current += char;
+                            }
+                        }
+                        values.push(current.trim());
+                        
+                        if (values.length === headers.length) {
+                            const row = {};
+                            headers.forEach((header, index) => {
+                                row[header] = values[index];
+                            });
+                            
+                            // 학습 데이터 필드 추가
+                            row.attempts = 0;
+                            row.correctAttempts = 0;
+                            row.incorrectAttempts = 0;
+                            row.lastAttemptDate = null;
+                            row.difficulty = '미정';
+                            row.nextReviewDate = null;
+                            row.attemptCountForDifficulty = 0;
+                            
+                            data.push(row);
+                        }
+                    }
+                    
+                    questions = data;
+                    console.log(`✅ 로컬 CSV 로딩 완료: ${questions.length}개 문제`);
+                    loadingStatus.textContent = `로컬 CSV 로딩 완료: ${questions.length}개 문제`;
+                    
+                } catch (localError) {
+                    console.error('로컬 CSV 로딩도 실패:', localError);
+                    loadingStatus.textContent = `CSV 로딩 완전 실패: ${localError.message}`;
+                }
+            }
+        }
+
+        async function initializeFirebase() {
+            loadingStatus.textContent = "Firebase 초기화 중...";
+            try {
+                if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey) { 
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                } else {
+                    throw new Error("Firebase 설정이 올바르지 않거나 API 키가 없습니다.");
+                }
+
+                return new Promise(resolve => {
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            userIdDisplay.textContent = userId;
+                            loadingStatus.textContent = "사용자 인증 완료. 학습 데이터 로드 중...";
+                            await loadLearningProgressFromFirestore();
+                            isAuthReady = true; 
+                            resolve();
+                        } else {
+                            if (initialAuthToken) {
+                                loadingStatus.textContent = "커스텀 토큰으로 로그인 중...";
+                                try {
+                                    await signInWithCustomToken(auth, initialAuthToken);
+                                } catch (error) {
+                                    console.error("Custom token login failed:", error);
+                                    loadingStatus.textContent = `로그인 실패: ${error.message}. 익명 로그인 시도...`;
+                                    await signInAnonymously(auth);
+                                }
+                            } else {
+                                loadingStatus.textContent = "익명 로그인 중...";
+                                await signInAnonymously(auth);
+                            }
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error("Firebase 초기화 또는 인증 오류:", error);
+                loadingSpinner.innerHTML = `<p class="text-red-600 text-lg">앱 초기화 실패: ${error.message}</p>`;
+                isAuthReady = false; 
+            }
+        }
+
+        // Firestore에서 학습 이력 로드
+        async function loadLearningProgressFromFirestore() {
+            if (!db || !userId || userId === 'loading') {
+                console.warn("Firestore 또는 userId가 준비되지 않았습니다. 학습 이력을 로드할 수 없습니다.");
+                return;
+            }
+
+            const userProgressCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/learning_progress`);
+            try {
+                const querySnapshot = await getDocs(userProgressCollectionRef);
+                const loadedProgress = {};
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    loadedProgress[doc.id] = {
+                        attempts: data.attempts || 0,
+                        correctAttempts: data.correctAttempts || 0,
+                        incorrectAttempts: data.incorrectAttempts || 0,
+                        lastAttemptDate: data.lastAttemptDate ? data.lastAttemptDate.toDate() : null, 
+                        difficulty: data.difficulty || '미정',
+                        nextReviewDate: data.nextReviewDate ? data.nextReviewDate.toDate() : null, 
+                        attemptCountForDifficulty: data.attemptCountForDifficulty || 0,
+                        EXPLAIN: data.EXPLAIN || "" 
+                    };
+                });
+
+                // 기존 questions 배열에 로드된 학습 이력 병합
+                questions.forEach(q => {
+                    if (loadedProgress[q.QCODE]) {
+                        Object.assign(q, loadedProgress[q.QCODE]);
+                    }
+                });
+                console.log("Firestore에서 학습 이력 로드 및 병합 완료.");
+                loadingStatus.textContent = "학습 데이터 로드 완료!";
+            } catch (error) {
+                console.error("Firestore에서 학습 이력 로드 중 오류:", error);
+                loadingStatus.textContent = `학습 데이터 로드 실패: ${error.message}`;
+            }
+        }
+
+        // Firestore에 학습 이력 저장/업데이트
+        async function saveLearningProgressToFirestore(question) {
+            if (!isAuthReady || !db || !userId || userId === 'loading' || !question.QCODE) {
+                console.warn("Firebase 인증이 준비되지 않았거나, Firestore/userId/QCODE가 없어 학습 이력을 저장할 수 없습니다.");
+                return;
+            }
+
+            const questionDocRef = doc(db, `artifacts/${appId}/users/${userId}/learning_progress`, question.QCODE);
+            try {
+                const dataToSave = {
+                    attempts: question.attempts,
+                    correctAttempts: question.correctAttempts,
+                    incorrectAttempts: question.incorrectAttempts,
+                    lastAttemptDate: question.lastAttemptDate,
+                    difficulty: question.difficulty,
+                    nextReviewDate: question.nextReviewDate,
+                    attemptCountForDifficulty: question.attemptCountForDifficulty,
+                    EXPLAIN: question.EXPLAIN 
+                };
+                await setDoc(questionDocRef, dataToSave, { merge: true }); 
+                console.log(`문제 ${question.QCODE} 학습 이력 Firestore에 저장 완료.`);
+            } catch (error) {
+                console.error(`문제 ${question.QCODE} 학습 이력 Firestore 저장 중 오류:`, error);
+            }
+        }
+
+        // Helper function to attach and detach event listeners for answer buttons
+        function attachAnswerButtonListeners() {
+            document.querySelectorAll('.option-btn, .true-false-btn').forEach(button => {
+                button.removeEventListener('click', selectOption); 
+                button.addEventListener('click', selectOption);
+                button.disabled = false; 
+                button.classList.remove('bg-blue-200', 'border-blue-500', 'border-2', 'bg-green-100', 'border-green-500', 'bg-red-100', 'border-red-500');
+            });
+        }
+
+        // 학습 이력 및 난이도 업데이트 함수
+        function updateLearningHistory(question, isCorrect) {
+            question.attempts = (question.attempts || 0) + 1; 
+            question.lastAttemptDate = new Date(); 
+
+            if (isCorrect) {
+                question.correctAttempts = (question.correctAttempts || 0) + 1; 
+                question.attemptCountForDifficulty = 0; 
+                if (question.attempts === 1) { 
+                    question.difficulty = '하';
+                } else if (question.attempts === 2) { 
+                    question.difficulty = '중';
+                } else { 
+                    question.difficulty = '상'; 
+                }
+            } else {
+                question.incorrectAttempts = (question.incorrectAttempts || 0) + 1; 
+                question.attemptCountForDifficulty = (question.attemptCountForDifficulty || 0) + 1; 
+                question.difficulty = '상'; 
+            }
+
+            const today = new Date();
+            let nextReviewDays = 0;
+
+            if (question.difficulty === '하') {
+                nextReviewDays = 3; 
+            } else if (question.difficulty === '중') {
+                nextReviewDays = 7; 
+            } else if (question.difficulty === '상') {
+                nextReviewDays = 1; 
+            }
+            
+            question.nextReviewDate = new Date(today.setDate(today.getDate() + nextReviewDays));
+            console.log(`문제 ${question.INDEX} 학습 이력 업데이트됨:`, question);
+
+            saveLearningProgressToFirestore(question);
+        }
+
+        // 학습 정보를 UI에 표시하는 함수
+        function updateLearningInfoDisplay(question) {
+            infoAttempts.textContent = question.attempts || 0;
+            infoCorrectAttempts.textContent = question.correctAttempts || 0;
+            infoIncorrectAttempts.textContent = question.incorrectAttempts || 0;
+            infoDifficulty.textContent = question.difficulty || '미정';
+            infoLastAttempt.textContent = question.lastAttemptDate ? question.lastAttemptDate.toLocaleString('ko-KR') : '없음';
+            infoNextReview.textContent = question.nextReviewDate ? question.nextReviewDate.toLocaleDateString('ko-KR') : '없음';
+        }
+
+        // 다음 문제를 가져오는 논리 엔진 함수 (학습 모드 및 대분류 반영)
+        function getNextQuestionIndex() {
+            // '인스교재' 소스 문제만 대상으로 함
+            let filteredQuestions = instMaterialQuestions; 
+
+            // 대분류 필터링 (선택된 대분류가 '전체'가 아닐 경우)
+            if (currentLayer1 !== '전체') {
+                filteredQuestions = filteredQuestions.filter(q => q.LAYER1 === currentLayer1);
+            }
+
+            if (filteredQuestions.length === 0) {
+                // 선택된 필터에 해당하는 문제가 없을 경우
+                alert(`선택된 분류 (${currentLayer1}) 내에 문제가 없습니다. 기본 모드로 돌아갑니다.`);
+                learningModeSelect.value = 'basic';
+                currentMode = 'basic';
+                currentLayer1 = '전체'; 
+                populateLayer1Select(); 
+                return questions.indexOf(instMaterialQuestions[0]); // 전체 문제 중 첫 문제
+            }
+
+
+            let targetQuestions = [];
+
+            if (currentMode === 'basic') {
+                // 기본 모드: 현재 인덱스 다음 문제 (순서대로)
+                // 필터링된 문제들 내에서 순서대로 찾기
+                const currentQ = questions[currentQuestionIndex];
+                const currentQIndexInFiltered = filteredQuestions.indexOf(currentQ);
+                if (currentQIndexInFiltered !== -1 && currentQIndexInFiltered < filteredQuestions.length - 1) {
+                    return questions.indexOf(filteredQuestions[currentQIndexInFiltered + 1]);
+                } else {
+                    // 필터링된 문제의 마지막이거나 현재 문제가 필터링에 없으면 첫 문제로 돌아가기
+                    return questions.indexOf(filteredQuestions[0]);
+                }
+            } else if (currentMode === 'incorrect') {
+                // 오답 노트 모드: 틀린 문제 중 가장 오래된 복습일/풀이일 문제 우선
+                targetQuestions = filteredQuestions.filter(q => (q.incorrectAttempts || 0) > 0);
+                if (targetQuestions.length === 0) {
+                    alert(`선택된 분류 (${currentLayer1}) 내에 틀린 문제가 없습니다. 기본 모드로 돌아갑니다.`);
+                    learningModeSelect.value = 'basic';
+                    currentMode = 'basic';
+                    currentLayer1 = '전체'; 
+                    populateLayer1Select(); 
+                    return questions.indexOf(instMaterialQuestions[0]); 
+                }
+
+                targetQuestions.sort((a, b) => {
+                    const reviewA = a.nextReviewDate ? a.nextReviewDate.getTime() : 0;
+                    const reviewB = b.nextReviewDate ? b.nextReviewDate.getTime() : 0;
+                    const lastAttemptA = a.lastAttemptDate ? a.lastAttemptDate.getTime() : 0;
+                    const lastAttemptB = b.lastAttemptDate ? b.lastAttemptDate.getTime() : 0;
+
+                    if (reviewA !== reviewB) return reviewA - reviewB; 
+                    return lastAttemptA - lastAttemptB; 
+                });
+                
+                return questions.indexOf(targetQuestions[0]);
+
+            } else if (currentMode === 'layer1_select') {
+                // 대분류별 문제 제시 모드 (난이도/복습일 우선순위)
+                // 1. 난이도 '상'이거나 오답 횟수가 있는 문제 우선
+                let highPriorityQuestions = filteredQuestions.filter(q => 
+                    (q.difficulty === '상' || (q.incorrectAttempts || 0) > 0)
+                );
+                if (highPriorityQuestions.length > 0) {
+                    highPriorityQuestions.sort((a, b) => {
+                        const reviewA = a.nextReviewDate ? a.nextReviewDate.getTime() : 0;
+                        const reviewB = b.nextReviewDate ? b.nextReviewDate.getTime() : 0;
+                        const lastAttemptA = a.lastAttemptDate ? a.lastAttemptDate.getTime() : 0;
+                        const lastAttemptB = b.lastAttemptDate ? b.lastAttemptDate.getTime() : 0;
+
+                        if (reviewA !== reviewB) return reviewA - reviewB; 
+                        return lastAttemptA - lastAttemptB; 
+                    });
+                    return questions.indexOf(highPriorityQuestions[0]);
+                }
+
+                // 2. 아직 풀지 않은 문제 (attempts가 0인 문제)
+                let unattemptedQuestions = filteredQuestions.filter(q => (q.attempts || 0) === 0);
+                if (unattemptedQuestions.length > 0) {
+                    const nextQ = unattemptedQuestions[Math.floor(Math.random() * unattemptedQuestions.length)];
+                    return questions.indexOf(nextQ);
+                }
+
+                // 3. 난이도 '중' 문제 중 복습일이 도래했거나 오래된 문제
+                let mediumDifficultyQuestions = filteredQuestions.filter(q => 
+                    q.difficulty === '중' && q.nextReviewDate && q.nextReviewDate <= new Date()
+                );
+                if (mediumDifficultyQuestions.length > 0) {
+                    mediumDifficultyQuestions.sort((a, b) => a.nextReviewDate.getTime() - b.nextReviewDate.getTime()); 
+                    return questions.indexOf(mediumDifficultyQuestions[0]);
+                }
+
+                // 4. 난이도 '하' 문제 중 복습일이 도래했거나 오래된 문제
+                let lowDifficultyQuestions = filteredQuestions.filter(q => 
+                    q.difficulty === '하' && q.nextReviewDate && q.nextReviewDate <= new Date()
+                );
+                if (lowDifficultyQuestions.length > 0) {
+                    lowDifficultyQuestions.sort((a, b) => a.nextReviewDate.getTime() - b.nextReviewDate.getTime());
+                    return questions.indexOf(lowDifficultyQuestions[0]);
+                }
+
+                // 필터링된 모든 문제를 다 풀었으면 해당 모드에서는 더 이상 풀 문제가 없음
+                alert(`선택된 분류 (${currentLayer1}) 내의 모든 문제를 풀었거나 복습할 문제가 없습니다. 기본 모드로 돌아갑니다.`);
+                learningModeSelect.value = 'basic';
+                currentMode = 'basic';
+                currentLayer1 = '전체'; 
+                populateLayer1Select(); 
+                return questions.indexOf(instMaterialQuestions[0]); 
+            }
+            
+            // 모든 모드에서 더 이상 풀 문제가 없을 경우
+            alert('모든 인스교재 문제를 다 풀었거나 복습할 문제가 없습니다. 처음부터 다시 시작합니다.');
+            return questions.indexOf(instMaterialQuestions[0]); 
+        }
+
+        // 대분류 드롭다운 채우기 함수
+        function populateLayer1Select() {
+            layer1Select.innerHTML = '<option value="전체">전체</option>'; // '전체' 옵션 추가
+            const uniqueLayer1s = [...new Set(instMaterialQuestions.map(q => q.LAYER1))].sort();
+            uniqueLayer1s.forEach(layer1 => {
+                const option = document.createElement('option');
+                option.value = layer1;
+                option.textContent = layer1;
+                layer1Select.appendChild(option);
+            });
+            layer1Select.value = currentLayer1; // 현재 선택된 값으로 설정
+            // 모드에 따라 대분류 드롭다운 표시/숨김
+            if (currentMode === 'layer1_select') {
+                layer1Select.classList.remove('hidden');
+            } else {
+                layer1Select.classList.add('hidden');
+            }
+        }
+
+
+        // 현재 문제를 화면에 표시하는 함수
+        function displayQuestion() {
+            if (questions.length === 0) {
+                questionTextElem.textContent = "문제를 불러올 수 없습니다. (질문 배열이 비어있음)";
+                return;
+            }
+
+            const currentQuestion = questions[currentQuestionIndex];
+            questionNumberElem.textContent = `문제 ${currentQuestionIndex + 1} / ${questions.length}`; // 전체 문제 수 기준
+
+            // 현재 모드에 따라 필터링된 문제의 총 개수를 표시하고 싶다면,
+            // filteredQuestions 배열을 getNextQuestionIndex 밖에서 정의하고 활용해야 합니다.
+            // 현재는 전체 문제 수 기준으로 표시.
+
+            questionTextElem.textContent = currentQuestion.QUESTION;
+
+            feedbackArea.classList.add('hidden');
+            submitAnswerBtn.classList.remove('hidden'); 
+            generateExplanationBtn.classList.add('hidden'); 
+
+            attachAnswerButtonListeners(); 
+
+            if (currentQuestion.TYPE === '선택형') {
+                optionsContainer.classList.remove('hidden'); 
+                trueFalseContainer.classList.add('hidden'); 
+            } else if (currentQuestion.TYPE === '진위형') {
+                optionsContainer.classList.add('hidden'); 
+                trueFalseContainer.classList.remove('hidden'); 
+            } else {
+                optionsContainer.classList.add('hidden');
+                trueFalseContainer.classList.add('hidden');
+                feedbackArea.classList.remove('hidden'); 
+                submitAnswerBtn.classList.add('hidden'); 
+                questionTextElem.textContent = `오류: 알 수 없는 문제 유형입니다: ${currentQuestion.TYPE}`;
+                questionTextElem.classList.add('text-red-600');
+            }
+
+            prevQuestionBtn.disabled = currentQuestionIndex === 0;
+            prevQuestionBtn.classList.toggle('opacity-50', prevQuestionBtn.disabled);
+            nextQuestionBtn.disabled = false; 
+            nextQuestionBtn.classList.remove('opacity-50');
+
+            updateLearningInfoDisplay(currentQuestion);
+        }
+
+        // 옵션 선택 핸들러
+        function selectOption(event) {
+            document.querySelectorAll('.option-btn, .true-false-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-200', 'border-blue-500', 'border-2');
+            });
+            event.target.classList.add('bg-blue-200', 'border-blue-500', 'border-2');
+            questions[currentQuestionIndex].selectedAnswer = event.target.dataset.option || event.target.dataset.answer;
+        }
+
+        // 정답 확인 함수
+        submitAnswerBtn.addEventListener('click', () => {
+            const currentQuestion = questions[currentQuestionIndex];
+            const selectedAnswer = questions[currentQuestionIndex].selectedAnswer; 
+            const correctAnswer = currentQuestion.ANSWER.trim(); 
+
+            if (!selectedAnswer) {
+                alert('답변을 선택해주세요!'); 
+                return;
+            }
+
+            submitAnswerBtn.classList.add('hidden');
+            feedbackArea.classList.remove('hidden');
+
+            const isCorrect = (selectedAnswer.trim() === correctAnswer);
+
+            updateLearningHistory(currentQuestion, isCorrect);
+            updateLearningInfoDisplay(currentQuestion);
+
+            if (isCorrect) { 
+                feedbackMessage.textContent = '정답입니다! 🎉';
+                feedbackMessage.classList.remove('text-red-600');
+                feedbackMessage.classList.add('text-green-600');
+                feedbackArea.classList.remove('border-red-300');
+                feedbackArea.classList.add('border-green-300');
+            } else {
+                feedbackMessage.textContent = `오답입니다. 😔 정답은 "${correctAnswer}" 입니다.`; 
+                feedbackMessage.classList.remove('text-green-600');
+                feedbackMessage.classList.add('text-red-600');
+                feedbackArea.classList.remove('border-green-300');
+                feedbackArea.classList.add('border-red-300');
+            }
+
+            if (currentQuestion.EXPLAIN && currentQuestion.EXPLAIN.trim() !== '') {
+                explanationText.textContent = currentQuestion.EXPLAIN;
+                generateExplanationBtn.classList.add('hidden'); 
+            } else {
+                explanationText.textContent = "해설이 없습니다. AI에게 해설을 요청할 수 있습니다.";
+                generateExplanationBtn.classList.remove('hidden'); 
+            }
+
+            document.querySelectorAll('.option-btn, .true-false-btn').forEach(btn => {
+                btn.disabled = true;
+                const btnValue = (btn.dataset.option || btn.dataset.answer).trim(); 
+                
+                if (btnValue === correctAnswer) { 
+                    btn.classList.add('bg-green-100', 'border-green-500', 'border-2');
+                } else if (btnValue === selectedAnswer.trim() && selectedAnswer.trim() !== correctAnswer) { 
+                    btn.classList.add('bg-red-100', 'border-red-500', 'border-2');
+                }
+            });
+        });
+
+        // 해설 생성 버튼 클릭 이벤트 (LLM 연동)
+        generateExplanationBtn.addEventListener('click', async () => {
+            const currentQuestion = questions[currentQuestionIndex];
+            if (currentQuestion.EXPLAIN && currentQuestion.EXPLAIN.trim() !== '') {
+                explanationText.textContent = currentQuestion.EXPLAIN; 
+                generateExplanationBtn.classList.add('hidden');
+                return;
+            }
+
+            explanationText.textContent = "AI가 해설을 생성 중입니다... 잠시만 기다려 주세요.";
+            generateExplanationBtn.disabled = true; 
+            generateExplanationBtn.classList.add('opacity-50');
+
+            try {
+                let chatHistory = [];
+                const prompt = `다음 보험 문제와 정답을 바탕으로 상세한 해설을 한국어로 작성해주세요. 문제: "${currentQuestion.QUESTION}" 정답: "${currentQuestion.ANSWER}"`;
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    explanationText.textContent = text;
+                    currentQuestion.EXPLAIN = text; // 생성된 해설 저장
+                    saveLearningProgressToFirestore(currentQuestion); // 해설 저장 후 Firestore에 업데이트
+                    generateExplanationBtn.classList.add('hidden'); 
+                } else {
+                    explanationText.textContent = "해설 생성에 실패했습니다. 다시 시도해 주세요.";
+                    console.error("LLM 응답 구조가 예상과 다릅니다:", result);
+                }
+            } catch (error) {
+                explanationText.textContent = `해설 생성 중 오류가 발생했습니다: ${error.message}`;
+                console.error("LLM 해설 생성 오류:", error);
+            } finally {
+                generateExplanationBtn.disabled = false; 
+                generateExplanationBtn.classList.remove('opacity-50');
+            }
+        });
+
+
+        // 학습 모드 변경 이벤트 리스너
+        learningModeSelect.addEventListener('change', (event) => {
+            currentMode = event.target.value;
+            // 모드 변경 시 대분류 드롭다운 표시/숨김 및 내용 업데이트
+            populateLayer1Select(); 
+            // 새로운 모드에 맞는 첫 문제로 이동
+            const nextIdx = getNextQuestionIndex();
+            currentQuestionIndex = nextIdx !== -1 ? nextIdx : 0; // 유효한 인덱스 아니면 0으로
+            displayQuestion();
+        });
+
+        // 대분류 선택 변경 이벤트 리스너
+        layer1Select.addEventListener('change', (event) => {
+            currentLayer1 = event.target.value;
+            // 대분류 변경 시 새로운 분류에 맞는 첫 문제로 이동
+            const nextIdx = getNextQuestionIndex();
+            currentQuestionIndex = nextIdx !== -1 ? nextIdx : 0; // 유효한 인덱스 아니면 0으로
+            displayQuestion();
+        });
+
+
+        // 다음 문제 버튼 (논리 엔진 활용)
+        nextQuestionBtn.addEventListener('click', () => {
+            const nextIdx = getNextQuestionIndex();
+            if (nextIdx !== -1) { 
+                currentQuestionIndex = nextIdx;
+                displayQuestion();
+            } else {
+                alert('모든 문제를 다 풀었거나 복습할 문제가 없습니다. 처음부터 다시 시작합니다.'); 
+                currentQuestionIndex = 0; 
+                displayQuestion();
+            }
+        });
+
+        // 이전 문제 버튼 (수동 탐색)
+        prevQuestionBtn.addEventListener('click', () => {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        });
+
+        // 앱 시작 시 Firebase 초기화 및 문제 표시
+        window.onload = async () => {
+            loadingSpinner.classList.remove('hidden'); 
+            quizArea.classList.add('hidden'); 
+            await loadCSVData(); // CSV 데이터 로딩
+            await initializeFirebase(); 
+            populateLayer1Select(); // Firebase 로드 후 대분류 드롭다운 채우기
+            loadingSpinner.classList.add('hidden'); 
+            quizArea.classList.remove('hidden'); 
+            
+            // 초기 로드 시에도 현재 모드/대분류에 맞는 문제로 시작
+            const initialIdx = getNextQuestionIndex();
+            currentQuestionIndex = initialIdx !== -1 ? initialIdx : 0;
+            displayQuestion(); 
+        };
+    </script>
+</body>
+</html>
