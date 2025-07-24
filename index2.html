@@ -30,8 +30,11 @@
     </div>
     <div class="container mx-auto px-4 py-6 max-w-4xl">
         <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">AICU 학습앱 - 대분류별 문제 (V2)</h1>
-        <!-- 대분류 버튼 그룹 -->
-        <div id="layer1-buttons" class="flex flex-wrap gap-2 justify-center mb-6"></div>
+        <!-- 대분류 버튼 그룹 + 처음부터 풀기 버튼 -->
+        <div class="flex flex-wrap gap-2 justify-center mb-6 items-center">
+          <button id="start-from-beginning" class="bg-gray-700 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded mr-4">처음부터 풀기</button>
+          <div id="layer1-buttons" class="flex flex-wrap gap-2"></div>
+        </div>
         <!-- 모드 선택 화면 -->
         <div id="mode-selection-screen" class="flex flex-wrap gap-4 justify-center mb-8">
             <button id="mode-layer1" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded">대분류별 문제</button>
@@ -70,7 +73,8 @@
             </div>
         </div>
         <!-- 문제 영역 -->
-        <div id="quiz-area" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div id="quiz-area" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6 relative">
+            <button id="go-home-btn" class="absolute top-2 right-2 bg-blue-200 hover:bg-blue-400 text-blue-800 font-bold py-1 px-3 rounded">대문으로</button>
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-2">
                     <span id="question-type" class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">진위형</span>
@@ -164,6 +168,18 @@
         <div id="explain-modal-content" class="text-gray-800 whitespace-pre-wrap min-h-[80px]">해설을 불러오는 중...</div>
       </div>
     </div>
+    <!-- 이어서/처음부터 선택 모달 -->
+    <div id="resume-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6 max-w-xs w-full relative">
+        <h2 class="text-lg font-bold mb-4">이어서 풀기</h2>
+        <p class="mb-4">이전에 푼 기록이 있습니다. 어떻게 시작할까요?</p>
+        <div class="flex gap-4 justify-center">
+          <button id="resume-continue" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">이어서 풀기</button>
+          <button id="resume-from-beginning" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">맨 처음부터</button>
+        </div>
+        <button id="resume-cancel" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+    </div>
     <script>
         let questions = [];
         let filteredQuestions = [];
@@ -174,6 +190,7 @@
         let layer1List = [];
         let currentLayer1 = null;
         let selectedLayer1 = null;
+        let lastSolvedIndex = null;
         // CSV 파일 로딩 함수 (전체 문제)
         async function loadCSVData() {
             const loadingStatus = document.getElementById('loading-status');
@@ -401,6 +418,7 @@
               layer2: question.LAYER2
             });
             updateProgressRates();
+            saveLastSolvedIndex(); // 문제 풀이 후 마지막 풀이 인덱스 저장
         }
         function nextQuestion() {
             if (currentQuestionIndex < filteredQuestions.length - 1) {
@@ -731,6 +749,51 @@
           }
           if (!document.getElementById('mock-test-screen').classList.contains('hidden')) return '모의고사';
           return '기타';
+        }
+        // 처음부터 풀기 버튼 클릭 이벤트
+        const startBtn = document.getElementById('start-from-beginning');
+        startBtn.addEventListener('click', () => {
+          lastSolvedIndex = parseInt(localStorage.getItem('lastSolvedIndex') || '0', 10);
+          if (lastSolvedIndex > 0) {
+            document.getElementById('resume-modal').classList.remove('hidden');
+          } else {
+            startQuizFrom(0);
+          }
+        });
+
+        // 이어서/처음부터 모달 버튼 이벤트
+        const resumeModal = document.getElementById('resume-modal');
+        document.getElementById('resume-continue').onclick = () => {
+          startQuizFrom(lastSolvedIndex);
+          resumeModal.classList.add('hidden');
+        };
+        document.getElementById('resume-from-beginning').onclick = () => {
+          startQuizFrom(0);
+          resumeModal.classList.add('hidden');
+        };
+        document.getElementById('resume-cancel').onclick = () => {
+          resumeModal.classList.add('hidden');
+        };
+
+        // 대문으로 버튼 이벤트
+        const goHomeBtn = document.getElementById('go-home-btn');
+        goHomeBtn.addEventListener('click', () => {
+          document.getElementById('quiz-area').classList.add('hidden');
+          document.getElementById('mode-selection-screen').classList.remove('hidden');
+        });
+
+        // 퀴즈 시작 함수
+        function startQuizFrom(idx) {
+          currentQuestionIndex = idx;
+          // 기존 퀴즈 시작 로직 호출 (예: showQuizArea 등)
+          document.getElementById('mode-selection-screen').classList.add('hidden');
+          document.getElementById('quiz-area').classList.remove('hidden');
+          showQuestion();
+        }
+
+        // 문제를 풀 때마다 마지막 인덱스 저장 (예시)
+        function saveLastSolvedIndex() {
+          localStorage.setItem('lastSolvedIndex', currentQuestionIndex);
         }
     </script>
 </body>
