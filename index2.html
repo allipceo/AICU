@@ -41,6 +41,12 @@
         </div>
         <!-- 대분류 선택 영역 -->
         <div id="large-category-selection-area" class="hidden flex flex-wrap gap-2 justify-center mb-4"></div>
+        <!-- 진위형/선택형 선택 영역 -->
+        <div id="question-type-selection-area" class="hidden flex flex-wrap gap-4 justify-center mb-6">
+            <h3 class="w-full text-center text-lg font-semibold text-gray-700 mb-4">문제 유형 선택</h3>
+            <button id="type-true-false" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200">진위형 문제</button>
+            <button id="type-choice" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200">선택형 문제</button>
+        </div>
         <!-- 중분류 선택 영역 -->
         <div id="medium-category-selection-area" class="hidden flex flex-wrap gap-2 justify-center mb-6">
             <div id="layer2-buttons" class="flex flex-wrap gap-2"></div>
@@ -167,6 +173,7 @@
         let stats = { totalAnswered: 0, correctCount: 0 };
         let layer1List = [];
         let currentLayer1 = null;
+        let selectedLayer1 = null;
         // CSV 파일 로딩 함수 (전체 문제)
         async function loadCSVData() {
             const loadingStatus = document.getElementById('loading-status');
@@ -223,12 +230,50 @@
         }
         function selectLayer1(layer1) {
             currentLayer1 = layer1;
-            filteredQuestions = questions.filter(q => q.LAYER1 && q.LAYER1.trim() === layer1);
-            currentQuestionIndex = 0;
-            displayQuestion();
-            document.getElementById('progress-text').textContent = `1 / ${filteredQuestions.length}`;
-            document.getElementById('remaining').textContent = filteredQuestions.length;
+            // 대분류 선택 후 진위형/선택형 선택 화면 표시
+            document.getElementById('large-category-selection-area').classList.add('hidden');
+            document.getElementById('question-type-selection-area').classList.remove('hidden');
+            
+            // 선택된 대분류 정보 저장
+            selectedLayer1 = layer1;
         }
+        
+        // 진위형 문제 선택 함수
+        function selectTrueFalseType() {
+            // 진위형 문제만 필터링
+            filteredQuestions = questions.filter(q => 
+                q.LAYER1 && q.LAYER1.trim() === selectedLayer1 && 
+                (q.TYPE === '진위형' || q.TYPE === '진위헝' || q.TYPE === '포인트')
+            );
+            
+            if (filteredQuestions.length === 0) {
+                alert('해당 대분류에 진위형 문제가 없습니다.');
+                return;
+            }
+            
+            currentQuestionIndex = 0;
+            document.getElementById('question-type-selection-area').classList.add('hidden');
+            startQuiz();
+        }
+        
+        // 선택형 문제 선택 함수
+        function selectChoiceType() {
+            // 선택형 문제만 필터링
+            filteredQuestions = questions.filter(q => 
+                q.LAYER1 && q.LAYER1.trim() === selectedLayer1 && 
+                q.TYPE === '선택형'
+            );
+            
+            if (filteredQuestions.length === 0) {
+                alert('해당 대분류에 선택형 문제가 없습니다.');
+                return;
+            }
+            
+            currentQuestionIndex = 0;
+            document.getElementById('question-type-selection-area').classList.add('hidden');
+            startQuiz();
+        }
+        
         function startQuiz() {
             document.getElementById('loading-area').classList.add('hidden');
             document.getElementById('progress-area').classList.remove('hidden');
@@ -567,12 +612,17 @@
         document.getElementById('mode-mocktest').onclick = enterMockTestMode;
         document.getElementById('mode-layer2').onclick = enterLayer2Mode;
         
+        // 진위형/선택형 버튼 이벤트 연결
+        document.getElementById('type-true-false').onclick = selectTrueFalseType;
+        document.getElementById('type-choice').onclick = selectChoiceType;
+        
         // 8. 홈으로 돌아가기 함수
         function goHome() {
             // 모든 화면 숨기기
             document.getElementById('mode-selection-screen').classList.remove('hidden');
             document.getElementById('layer1-buttons').classList.add('hidden');
             document.getElementById('large-category-selection-area').classList.add('hidden');
+            document.getElementById('question-type-selection-area').classList.add('hidden');
             document.getElementById('medium-category-selection-area').classList.add('hidden');
             document.getElementById('loading-area').classList.add('hidden');
             document.getElementById('progress-area').classList.add('hidden');
