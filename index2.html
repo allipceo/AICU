@@ -221,7 +221,15 @@
                 document.getElementById('total-questions-display').textContent = `전체 문제: ${questions.length}개`;
                 document.getElementById('progress-text').textContent = `1 / ${filteredQuestions.length}`;
                 document.getElementById('remaining').textContent = filteredQuestions.length;
-                setTimeout(startQuiz, 1000);
+                
+                // 조대표님 지침: 로딩 완료 후 대분류 선택 화면 표시 (바로 퀴즈 시작하지 않음)
+                document.getElementById('loading-area').classList.add('hidden');
+                document.getElementById('large-category-selection-area').classList.remove('hidden');
+                
+                // 첫 번째 대분류 자동 선택
+                if (layer1List.length > 0) {
+                    selectLayer1(layer1List[0]);
+                }
             } catch (error) {
                 console.error('CSV 로딩 오류:', error);
                 loadingStatus.innerHTML = `<span class="text-red-600 font-bold">CSV 로딩 실패: ${error.message}</span>`;
@@ -656,6 +664,11 @@
         
         // 9. 홈 버튼 이벤트 연결
         document.getElementById('home-btn').onclick = goHome;
+        
+        // 진위형/선택형 버튼 이벤트 연결
+        document.getElementById('type-true-false').onclick = selectTrueFalseType;
+        document.getElementById('type-choice').onclick = selectChoiceType;
+        
         // 7. 오답 목록 초기화 함수 (콘솔에서 호출)
         function clearIncorrectProblems() {
             localStorage.removeItem('aciu_incorrect_problems');
