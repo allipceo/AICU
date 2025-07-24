@@ -329,6 +329,7 @@
 
         // CSV 파일 로딩 함수 (노팀장 index.html과 동일)
         async function loadCSVData() {
+            // loadingStatus와 loadingProgress는 함수 내부에서 참조
             const loadingStatus = document.getElementById('loading-status');
             const loadingProgress = document.getElementById('loading-progress');
             
@@ -383,14 +384,20 @@
                 
             } catch (error) {
                 console.error('CSV 로딩 오류:', error);
-                loadingStatus.innerHTML = `
-                    <span class="text-red-600 font-bold">CSV 로딩 실패: ${error.message}</span><br>
-                    <span class="text-sm mt-2">해결 방법:</span><br>
-                    <span class="text-sm">1. ins_789_final_dev.csv 파일이 같은 폴더에 있는지 확인</span><br>
-                    <span class="text-sm">2. GitHub Pages에서 실행 (권장)</span><br>
-                    <span class="text-sm">3. 로컬 웹서버 사용 (python -m http.server)</span>
-                `;
-                loadingProgress.style.width = "0%";
+                // 에러 발생 시 loadingStatus와 loadingProgress가 null이 아님을 보장
+                // 이전에 이미 DOM에 접근하여 오류가 났으므로, 이 부분은 안전하게 실행
+                if (loadingStatus) {
+                    loadingStatus.innerHTML = `
+                        <span class="text-red-600 font-bold">CSV 로딩 실패: ${error.message}</span><br>
+                        <span class="text-sm mt-2">해결 방법:</span><br>
+                        <span class="text-sm">1. ins_789_final_dev.csv 파일이 같은 폴더에 있는지 확인</span><br>
+                        <span class="text-sm">2. GitHub Pages에서 실행 (권장)</span><br>
+                        <span class="text-sm">3. 로컬 웹서버 사용 (python -m http.server)</span>
+                    `;
+                }
+                if (loadingProgress) {
+                    loadingProgress.style.width = "0%";
+                }
             }
         }
 

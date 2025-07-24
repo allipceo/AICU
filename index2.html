@@ -22,7 +22,9 @@
       <div class="flex items-center gap-4">
         <span id="overall-progress-rate" class="font-bold text-green-700">전체 진도율: 0%</span>
         <span id="daily-progress-rate" class="font-bold text-purple-700">오늘 진도율: 0%</span>
+        <span id="total-questions-display" class="font-bold text-orange-700">전체 문제: 0개</span>
         <span id="quote-header" class="text-xs text-gray-500">"오늘도 한 문제씩!"</span>
+        <button id="home-btn" class="ml-2 bg-blue-200 hover:bg-blue-300 text-blue-700 font-bold py-1 px-3 rounded">🏠 홈</button>
         <button id="settings-btn" class="ml-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-1 px-3 rounded">⚙️</button>
       </div>
     </div>
@@ -209,6 +211,7 @@
                 loadingStatus.textContent = `${questions.length}개 문제 로드 완료!`;
                 loadingProgress.style.width = "100%";
                 document.getElementById('loaded-count').textContent = questions.length;
+                document.getElementById('total-questions-display').textContent = `전체 문제: ${questions.length}개`;
                 document.getElementById('progress-text').textContent = `1 / ${filteredQuestions.length}`;
                 document.getElementById('remaining').textContent = filteredQuestions.length;
                 setTimeout(startQuiz, 1000);
@@ -563,6 +566,32 @@
         document.getElementById('mode-incorrect').onclick = enterIncorrectMode;
         document.getElementById('mode-mocktest').onclick = enterMockTestMode;
         document.getElementById('mode-layer2').onclick = enterLayer2Mode;
+        
+        // 8. 홈으로 돌아가기 함수
+        function goHome() {
+            // 모든 화면 숨기기
+            document.getElementById('mode-selection-screen').classList.remove('hidden');
+            document.getElementById('layer1-buttons').classList.add('hidden');
+            document.getElementById('large-category-selection-area').classList.add('hidden');
+            document.getElementById('medium-category-selection-area').classList.add('hidden');
+            document.getElementById('loading-area').classList.add('hidden');
+            document.getElementById('progress-area').classList.add('hidden');
+            document.getElementById('quiz-area').classList.add('hidden');
+            document.getElementById('stats-area').classList.add('hidden');
+            document.getElementById('mock-test-screen').classList.add('hidden');
+            
+            // 변수 초기화
+            currentQuestionIndex = 0;
+            selectedAnswer = null;
+            answered = false;
+            
+            // 통계 초기화
+            stats = { totalAnswered: 0, correctCount: 0 };
+            updateStats();
+        }
+        
+        // 9. 홈 버튼 이벤트 연결
+        document.getElementById('home-btn').onclick = goHome;
         // 7. 오답 목록 초기화 함수 (콘솔에서 호출)
         function clearIncorrectProblems() {
             localStorage.removeItem('aciu_incorrect_problems');
