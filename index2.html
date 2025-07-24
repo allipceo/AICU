@@ -346,7 +346,10 @@
             
             // 조대표님 지침: 사용자 선택값과 정답만 비교
             // 진위형: O/X 비교, 선택형: 1,2,3,4 비교
-            const isCorrect = selectedAnswer === question.ANSWER;
+            // 데이터 타입을 문자열로 통일하여 정확한 비교
+            const userAnswer = String(selectedAnswer);
+            const correctAnswer = String(question.ANSWER);
+            const isCorrect = userAnswer === correctAnswer;
             
             answered = true;
             stats.totalAnswered++;
@@ -364,7 +367,7 @@
                 resultText.textContent = '오답입니다 😔';
                 resultText.className = 'font-bold text-lg mb-2 text-red-600';
                 resultArea.className = 'mb-6 p-4 rounded-lg bg-red-50 border border-red-200';
-                correctAnswerText.textContent = `정답: ${question.ANSWER}`;
+                correctAnswerText.textContent = `정답: ${correctAnswer}`;
             }
             if (question.EXPLAIN && question.EXPLAIN.trim() !== '') {
                 document.getElementById('explanation-text').textContent = question.EXPLAIN;
@@ -375,9 +378,9 @@
             document.getElementById('next-btn').style.display = 'block';
             document.querySelectorAll('.answer-btn').forEach(btn => {
                 btn.disabled = true;
-                if (btn.dataset.answer === question.ANSWER) {
+                if (btn.dataset.answer === correctAnswer) {
                     btn.classList.add('bg-green-300');
-                } else if (btn.dataset.answer === selectedAnswer && selectedAnswer !== question.ANSWER) {
+                } else if (btn.dataset.answer === userAnswer && userAnswer !== correctAnswer) {
                     btn.classList.add('bg-red-300');
                 }
             });
