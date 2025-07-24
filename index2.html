@@ -242,17 +242,31 @@
             const question = filteredQuestions[currentQuestionIndex];
             document.getElementById('question-type').textContent = question.TYPE;
             document.getElementById('question-code').textContent = question.QCODE;
-            document.getElementById('question-text').textContent = question.QUESTION;
+            // 조대표님 지침: 문제 필드 내용을 그대로 표시 (파싱/분석 없음)
+            document.getElementById('question-text').innerHTML = question.QUESTION;
             document.getElementById('layer-info').textContent = `${question.LAYER1} > ${question.LAYER2}`;
             document.getElementById('progress-text').textContent = `${currentQuestionIndex + 1} / ${filteredQuestions.length}`;
             document.getElementById('progress-bar').style.width = `${((currentQuestionIndex + 1) / filteredQuestions.length) * 100}%`;
-            if (question.TYPE === '진위형') {
+            
+            // 조대표님 지침: 문제 유형에 따라 버튼만 다르게 표시 (유형 정규화 포함)
+            const questionType = question.TYPE;
+            let normalizedType = questionType;
+            
+            // 문제 유형 정규화 (오타 및 잘못된 유형 수정)
+            if (questionType === '진위형' || questionType === '진위헝' || questionType === '포인트') {
+                normalizedType = '진위형';
+            } else {
+                normalizedType = '선택형';
+            }
+            
+            if (normalizedType === '진위형') {
                 document.getElementById('true-false-buttons').classList.remove('hidden');
                 document.getElementById('choice-buttons').classList.add('hidden');
             } else {
                 document.getElementById('true-false-buttons').classList.add('hidden');
                 document.getElementById('choice-buttons').classList.remove('hidden');
             }
+            
             selectedAnswer = null;
             answered = false;
             document.getElementById('result-area').classList.add('hidden');
@@ -415,6 +429,33 @@
             document.getElementById('layer1-buttons').classList.remove('hidden');
             startQuiz();
         }
+        
+        // 6. 중분류 모드 진입 함수
+        function enterLayer2Mode() {
+            // 중분류 목록 생성
+            const layer2List = [...new Set(questions.map(q => q.LAYER2).filter(Boolean))];
+            const layer2Buttons = document.getElementById('layer2-buttons');
+            layer2Buttons.innerHTML = '';
+            
+            layer2List.forEach(layer2 => {
+                const btn = document.createElement('button');
+                btn.textContent = layer2;
+                btn.className = 'bg-green-100 hover:bg-green-300 text-green-800 font-bold py-2 px-4 rounded transition duration-200';
+                btn.onclick = () => selectLayer2(layer2);
+                layer2Buttons.appendChild(btn);
+            });
+            
+            document.getElementById('mode-selection-screen').classList.add('hidden');
+            document.getElementById('medium-category-selection-area').classList.remove('hidden');
+        }
+        
+        // 7. 중분류 선택 함수
+        function selectLayer2(layer2) {
+            filteredQuestions = questions.filter(q => q.LAYER2 && q.LAYER2.trim() === layer2);
+            currentQuestionIndex = 0;
+            document.getElementById('medium-category-selection-area').classList.add('hidden');
+            startQuiz();
+        }
         // 3. 랜덤 20문제 추출 함수
         function getRandomQuestions(arr, n) {
             const result = [];
@@ -445,9 +486,10 @@
             const question = filteredQuestions[currentQuestionIndex];
             document.getElementById('mock-test-progress').textContent = `${currentQuestionIndex + 1} / 20`;
             document.getElementById('mock-test-total-questions').textContent = `총 20문제`;
-            // 문제 표시 영역에 기존 문제 UI 재사용
+            // 조대표님 지침: 문제 필드 내용을 그대로 표시 (파싱/분석 없음)
             let html = `<div class='mb-4'><span class='text-sm text-gray-500'>${question.LAYER1} > ${question.LAYER2}</span></div>`;
             html += `<div class='mb-4 text-lg font-semibold'>${question.QUESTION}</div>`;
+            // 조대표님 지침: 문제 유형에 따라 버튼만 다르게 표시
             if (question.TYPE === '진위형') {
                 html += `<div class='flex gap-4 mb-4'>
                     <button onclick='mockTestSelectAnswer("O")' class='mock-answer-btn bg-green-100 hover:bg-green-300 text-green-800 font-bold py-2 px-6 rounded' data-answer='O'>O (맞다)</button>
