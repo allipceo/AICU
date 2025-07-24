@@ -290,13 +290,16 @@
             const question = filteredQuestions[currentQuestionIndex];
             document.getElementById('question-type').textContent = question.TYPE;
             document.getElementById('question-code').textContent = question.QCODE;
+            
             // 조대표님 지침: 문제 필드 내용을 그대로 표시 (파싱/분석 없음)
+            // 진위형이든 선택형이든 문제 필드 전체를 그대로 표시
             document.getElementById('question-text').innerHTML = question.QUESTION;
+            
             document.getElementById('layer-info').textContent = `${question.LAYER1} > ${question.LAYER2}`;
             document.getElementById('progress-text').textContent = `${currentQuestionIndex + 1} / ${filteredQuestions.length}`;
             document.getElementById('progress-bar').style.width = `${((currentQuestionIndex + 1) / filteredQuestions.length) * 100}%`;
             
-            // 조대표님 지침: 문제 유형에 따라 버튼만 다르게 표시 (유형 정규화 포함)
+            // 조대표님 지침: 문제 유형에 따라 버튼만 다르게 표시
             const questionType = question.TYPE;
             let normalizedType = questionType;
             
@@ -307,10 +310,12 @@
                 normalizedType = '선택형';
             }
             
+            // 진위형: O/X 버튼, 선택형: 1,2,3,4 버튼만 표시
             if (normalizedType === '진위형') {
                 document.getElementById('true-false-buttons').classList.remove('hidden');
                 document.getElementById('choice-buttons').classList.add('hidden');
             } else {
+                // 선택형: 문제 필드 전체 표시 + 1,2,3,4 버튼만 표시
                 document.getElementById('true-false-buttons').classList.add('hidden');
                 document.getElementById('choice-buttons').classList.remove('hidden');
             }
@@ -338,13 +343,19 @@
         function checkAnswer() {
             if (!selectedAnswer || answered) return;
             const question = filteredQuestions[currentQuestionIndex];
+            
+            // 조대표님 지침: 사용자 선택값과 정답만 비교
+            // 진위형: O/X 비교, 선택형: 1,2,3,4 비교
             const isCorrect = selectedAnswer === question.ANSWER;
+            
             answered = true;
             stats.totalAnswered++;
             if (isCorrect) stats.correctCount++;
+            
             const resultArea = document.getElementById('result-area');
             const resultText = document.getElementById('result-text');
             const correctAnswerText = document.getElementById('correct-answer');
+            
             if (isCorrect) {
                 resultText.textContent = '정답입니다! 🎉';
                 resultText.className = 'font-bold text-lg mb-2 text-green-600';
