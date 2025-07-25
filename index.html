@@ -33,7 +33,7 @@
             <div class="w-full bg-gray-200 rounded-full h-2">
                 <div id="progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0.1%"></div>
             </div>
-        </div>
+            </div>
 
         <!-- 문제 영역 -->
         <div id="quiz-area" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
@@ -49,7 +49,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="question-container mb-6">
                 <p id="question-text" class="text-gray-800 leading-relaxed whitespace-pre-wrap">문제를 불러오는 중...</p>
             </div>
@@ -83,7 +83,7 @@
                 <button onclick="checkAnswer()" id="check-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">정답 확인</button>
                 <button onclick="nextQuestion()" id="next-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">다음</button>
             </div>
-
+            
             <!-- 빠른 이동 -->
             <div class="mt-4 flex flex-wrap gap-2 justify-center">
                 <button onclick="jumpToRandom()" class="bg-purple-500 hover:bg-purple-600 text-white text-sm py-1 px-3 rounded">랜덤 문제</button>
@@ -126,7 +126,7 @@
     <script>
         // 전역 변수
         let questions = [];
-        let currentQuestionIndex = 0;
+        let currentQuestionIndex = 0; 
         let selectedAnswer = null;
         let answered = false;
         let stats = {
@@ -293,8 +293,8 @@
             const resultArea = document.getElementById('result-area');
             const resultText = document.getElementById('result-text');
             const correctAnswerText = document.getElementById('correct-answer');
-            
-            if (isCorrect) {
+
+            if (isCorrect) { 
                 resultText.textContent = '정답입니다! 🎉';
                 resultText.className = 'font-bold text-lg mb-2 text-green-600';
                 resultArea.className = 'mb-6 p-4 rounded-lg bg-green-50 border border-green-200';

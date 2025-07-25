@@ -377,7 +377,7 @@
                 document.getElementById('total-questions').textContent = questions.length; // 총 문제 수 업데이트
                 
                 // 로딩 완료 후 앱 시작 (UI V2.3의 모드 선택 화면으로 전환)
-                setTimeout(startAppWithModeSelection, 1000); // UI V2.3의 시작 함수 호출
+                setTimeout(startAppWithModeSelection, 1000); // 이제 함수가 이미 정의됨
                 
             } catch (error) {
                 console.error('CSV 로딩 오류:', error);
