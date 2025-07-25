@@ -12,21 +12,8 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <!-- 1. 헤더에 전체/일일 진도율, 사용자 정보 등 UI 추가 (body container div 상단) -->
-    <div id="app-header" class="flex flex-wrap items-center justify-between mb-6 p-4 bg-white rounded-lg shadow">
-      <div class="flex items-center gap-4">
-        <span id="user-id-header" class="font-bold text-blue-700">User: guest</span>
-        <span id="d-day-header" class="text-sm text-gray-500">D-30</span>
-        <span id="date-header" class="text-sm text-gray-500"></span>
-      </div>
-      <div class="flex items-center gap-4">
-        <span id="overall-progress-rate" class="font-bold text-green-700">전체 진도율: 0%</span>
-        <span id="daily-progress-rate" class="font-bold text-purple-700">오늘 진도율: 0%</span>
-        <span id="total-questions-display" class="font-bold text-orange-700">전체 문제: 0개</span>
-        <span id="quote-header" class="text-xs text-gray-500">"오늘도 한 문제씩!"</span>
-        <button id="home-btn" class="ml-2 bg-blue-200 hover:bg-blue-300 text-blue-700 font-bold py-1 px-3 rounded">🏠 홈</button>
-        <button id="settings-btn" class="ml-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-1 px-3 rounded">⚙️</button>
-      </div>
+    <div id="main-start-area" class="flex flex-col items-center justify-center min-h-[60vh]">
+      <button id="start-quiz-btn" class="bg-blue-600 hover:bg-blue-800 text-white text-2xl font-bold py-6 px-16 rounded-lg shadow-lg transition duration-200 mb-8">처음부터 문제풀기</button>
     </div>
     <div class="container mx-auto px-4 py-6 max-w-4xl">
         <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">AICU 학습앱 - 대분류별 문제 (V2)</h1>
@@ -70,7 +57,8 @@
             </div>
         </div>
         <!-- 문제 영역 -->
-        <div id="quiz-area" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div id="quiz-area" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6 relative">
+            <button id="go-home-btn" class="absolute top-2 right-2 bg-blue-200 hover:bg-blue-400 text-blue-800 font-bold py-1 px-3 rounded">대문으로</button>
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-2">
                     <span id="question-type" class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">진위형</span>
@@ -92,11 +80,19 @@
                 <button onclick="selectAnswer('X')" class="answer-btn bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="X">X (틀리다)</button>
             </div>
             <!-- 선택형 답안 -->
+<<<<<<< HEAD
             <div id="choice-buttons" class="hidden grid grid-cols-4 gap-4 mb-6">
                 <button onclick="selectAnswer('1')" class="answer-btn text-center bg-gray-100 hover:bg-gray-200 text-gray-800 py-4 px-2 rounded-lg transition duration-200" data-answer="1">1번</button>
                 <button onclick="selectAnswer('2')" class="answer-btn text-center bg-gray-100 hover:bg-gray-200 text-gray-800 py-4 px-2 rounded-lg transition duration-200" data-answer="2">2번</button>
                 <button onclick="selectAnswer('3')" class="answer-btn text-center bg-gray-100 hover:bg-gray-200 text-gray-800 py-4 px-2 rounded-lg transition duration-200" data-answer="3">3번</button>
                 <button onclick="selectAnswer('4')" class="answer-btn text-center bg-gray-100 hover:bg-gray-200 text-gray-800 py-4 px-2 rounded-lg transition duration-200" data-answer="4">4번</button>
+=======
+            <div id="choice-buttons" class="hidden grid grid-cols-4 gap-3 mb-6">
+                <button onclick="selectAnswer('1')" class="answer-btn bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-2 rounded-lg transition duration-200 text-sm font-semibold" data-answer="1">1번</button>
+                <button onclick="selectAnswer('2')" class="answer-btn bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-2 rounded-lg transition duration-200 text-sm font-semibold" data-answer="2">2번</button>
+                <button onclick="selectAnswer('3')" class="answer-btn bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-2 rounded-lg transition duration-200 text-sm font-semibold" data-answer="3">3번</button>
+                <button onclick="selectAnswer('4')" class="answer-btn bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-2 rounded-lg transition duration-200 text-sm font-semibold" data-answer="4">4번</button>
+>>>>>>> ff257eacab3b565f444e37fc9a5ca8bd2dba6f3a
             </div>
             <!-- 결과 표시 -->
             <div id="result-area" class="hidden mb-6 p-4 rounded-lg">
@@ -164,6 +160,18 @@
         <div id="explain-modal-content" class="text-gray-800 whitespace-pre-wrap min-h-[80px]">해설을 불러오는 중...</div>
       </div>
     </div>
+    <!-- 이어서/처음부터 선택 모달 -->
+    <div id="resume-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6 max-w-xs w-full relative">
+        <h2 class="text-lg font-bold mb-4">이어서 풀기</h2>
+        <p class="mb-4">이전에 푼 기록이 있습니다. 어떻게 시작할까요?</p>
+        <div class="flex gap-4 justify-center">
+          <button id="resume-continue" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">이어서 풀기</button>
+          <button id="resume-from-beginning" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">맨 처음부터</button>
+        </div>
+        <button id="resume-cancel" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+    </div>
     <script>
         let questions = [];
         let filteredQuestions = [];
@@ -174,6 +182,7 @@
         let layer1List = [];
         let currentLayer1 = null;
         let selectedLayer1 = null;
+        let lastSolvedIndex = null;
         // CSV 파일 로딩 함수 (전체 문제)
         async function loadCSVData() {
             const loadingStatus = document.getElementById('loading-status');
@@ -412,6 +421,7 @@
               layer2: question.LAYER2
             });
             updateProgressRates();
+            saveLastSolvedIndex(); // 문제 풀이 후 마지막 풀이 인덱스 저장
         }
         function nextQuestion() {
             if (currentQuestionIndex < filteredQuestions.length - 1) {
@@ -688,8 +698,8 @@
         });
         // 8. 앱 시작 시 모드 선택 화면만 보이도록 초기화
         window.addEventListener('load', () => {
-            document.getElementById('mode-selection-screen').classList.remove('hidden');
-            document.getElementById('layer1-buttons').classList.add('hidden');
+            document.getElementById('main-start-area').classList.remove('hidden');
+            document.getElementById('quiz-area').classList.add('hidden');
             document.getElementById('loading-area').classList.add('hidden');
             document.getElementById('progress-area').classList.add('hidden');
             document.getElementById('quiz-area').classList.add('hidden');
@@ -747,6 +757,51 @@
           }
           if (!document.getElementById('mock-test-screen').classList.contains('hidden')) return '모의고사';
           return '기타';
+        }
+        // 처음부터 풀기 버튼 클릭 이벤트
+        const startBtn = document.getElementById('start-quiz-btn');
+        startBtn.addEventListener('click', () => {
+          lastSolvedIndex = parseInt(localStorage.getItem('lastSolvedIndex') || '0', 10);
+          if (lastSolvedIndex > 0) {
+            document.getElementById('resume-modal').classList.remove('hidden');
+          } else {
+            startQuizFrom(0);
+          }
+        });
+
+        // 이어서/처음부터 모달 버튼 이벤트
+        const resumeModal = document.getElementById('resume-modal');
+        document.getElementById('resume-continue').onclick = () => {
+          startQuizFrom(lastSolvedIndex);
+          resumeModal.classList.add('hidden');
+        };
+        document.getElementById('resume-from-beginning').onclick = () => {
+          startQuizFrom(0);
+          resumeModal.classList.add('hidden');
+        };
+        document.getElementById('resume-cancel').onclick = () => {
+          resumeModal.classList.add('hidden');
+        };
+
+        // 대문으로 버튼 이벤트
+        const goHomeBtn = document.getElementById('go-home-btn');
+        goHomeBtn.addEventListener('click', () => {
+          document.getElementById('quiz-area').classList.add('hidden');
+          document.getElementById('mode-selection-screen').classList.remove('hidden');
+        });
+
+        // 퀴즈 시작 함수
+        function startQuizFrom(idx) {
+          currentQuestionIndex = idx;
+          // 기존 퀴즈 시작 로직 호출 (예: showQuizArea 등)
+          document.getElementById('mode-selection-screen').classList.add('hidden');
+          document.getElementById('quiz-area').classList.remove('hidden');
+          showQuestion();
+        }
+
+        // 문제를 풀 때마다 마지막 인덱스 저장 (예시)
+        function saveLastSolvedIndex() {
+          localStorage.setItem('lastSolvedIndex', currentQuestionIndex);
         }
     </script>
 </body>
