@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV 파일 다운로드</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        button { background: #4CAF50; color: white; padding: 15px 30px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .status { margin: 20px 0; padding: 10px; background: #f0f0f0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 ins_master_db1.csv 파일 다운로드</h1>
+        <div class="status" id="status">준비 중...</div>
+        <button id="downloadBtn" onclick="downloadCSV()">📁 CSV 파일 다운로드</button>
+        
+        <div style="margin-top: 30px;">
+            <h3>📋 파일 정보</h3>
+            <ul>
+                <li>파일명: ins_master_db1.csv</li>
+                <li>총 문제 수: 1,379개</li>
+                <li>조대표님 검토 완료</li>
+                <li>줄바꿈 문제 해결됨</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Excel 파일에서 CSV 생성 및 다운로드
+        async function downloadCSV() {
+            const statusDiv = document.getElementById('status');
+            const btn = document.getElementById('downloadBtn');
+            
+            try {
+                statusDiv.textContent = 'Excel 파일 로딩 중...';
+                btn.disabled = true;
+                
+                // ins_master_db.xlsx 파일 읽기
+                const response = await fetch('ins_master_db.xlsx');
+                if (!response.ok) {
+                    throw new Error('Excel 파일을 찾을 수 없습니다. ins_master_db.xlsx 파일이 같은 폴더에 있는지 확인해주세요.');
+                }
+                
+                statusDiv.textContent = 'Excel 파일 처리 중...';
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer);
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                
+                // CSV로 변환
+                const csvData = XLSX.utils.sheet_to_csv(worksheet, {
+                    strip: false,
+                    blankrows: false
+                });
+                
+                statusDiv.textContent = 'CSV 파일 생성 중...';
+                
+                // 다운로드 실행
+                const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', 'ins_master_db1.csv');
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    statusDiv.textContent = '✅ ins_master_db1.csv 다운로드 완료!';
+                    statusDiv.style.background = '#d4edda';
+                    statusDiv.style.color = '#155724';
+                } else {
+                    throw new Error('브라우저가 다운로드를 지원하지 않습니다.');
+                }
+                
+            } catch (error) {
+                statusDiv.textContent = '❌ 오류: ' + error.message;
+                statusDiv.style.background = '#f8d7da';
+                statusDiv.style.color = '#721c24';
+                console.error('다운로드 오류:', error);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        // 페이지 로드 시 상태 업데이트
+        window.onload = function() {
+            document.getElementById('status').textContent = '✅ 다운로드 준비 완료';
+        };
+    </script>
+</body>
+</html>

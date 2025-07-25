@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AICU 학습 앱 (개선 버전)</title>
+    <title>AICU 학습 앱 (분리형)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         body {
             font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -29,98 +30,109 @@
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
     <div id="app-container" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl border border-gray-200">
-        <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">AICU 학습 앱</h1>
+        <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">AICU 학습 앱 (분리형)</h1>
 
-        <!-- 진행 상황 표시 -->
-        <div class="mb-6 bg-gray-50 p-4 rounded-lg">
-            <div class="flex justify-between text-sm text-gray-600 mb-2">
-                <span>문제 <span id="current-number">1</span> / <span id="total-number">789</span></span>
-                <span>정답률: <span id="accuracy">0</span>%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-                <div id="progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
-            </div>
+        <!-- 로딩 상태 -->
+        <div id="loading-area" class="text-center py-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-gray-600">CSV 데이터를 불러오는 중...</p>
+            <p id="loading-status" class="text-sm text-gray-500 mt-2"></p>
         </div>
 
-        <!-- 문제 영역 -->
-        <div class="mb-6">
-            <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
-                <div class="text-sm text-gray-500 mb-2">
-                    <span id="question-type">진위형</span> | 
-                    <span id="question-layer">대분류</span>
+        <!-- 메인 앱 영역 (로딩 완료 후 표시) -->
+        <div id="main-app" class="hidden">
+            <!-- 진행 상황 표시 -->
+            <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                    <span>문제 <span id="current-number">1</span> / <span id="total-number">0</span></span>
+                    <span>정답률: <span id="accuracy">0</span>%</span>
                 </div>
-                <!-- 문제 내용을 파싱 없이 그대로 표시 -->
-                <div id="question-text" class="text-lg font-medium text-gray-800 whitespace-pre-wrap leading-relaxed">
-                    문제를 불러오는 중...
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
                 </div>
             </div>
-        </div>
 
-        <!-- 답변 버튼 영역 -->
-        <div id="answer-buttons" class="mb-6">
-            <!-- 진위형 버튼 (기본 숨김) -->
-            <div id="true-false-buttons" class="hidden flex gap-4">
-                <button id="btn-true" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="O">
-                    O (맞다)
-                </button>
-                <button id="btn-false" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="X">
-                    X (틀리다)
-                </button>
-            </div>
-            
-            <!-- 선택형 버튼 (기본 숨김) -->
-            <div id="choice-buttons" class="hidden grid grid-cols-2 gap-3">
-                <button id="btn-1" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="1">
-                    1번
-                </button>
-                <button id="btn-2" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="2">
-                    2번
-                </button>
-                <button id="btn-3" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="3">
-                    3번
-                </button>
-                <button id="btn-4" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="4">
-                    4번
-                </button>
-            </div>
-        </div>
-
-        <!-- 결과 표시 영역 -->
-        <div id="result-area" class="hidden mb-6 p-4 rounded-lg">
-            <div id="result-message" class="text-lg font-bold mb-2"></div>
-            <div id="explanation-area" class="text-sm text-gray-600 bg-gray-50 p-3 rounded border"></div>
-        </div>
-
-        <!-- 컨트롤 버튼 -->
-        <div class="flex justify-between items-center">
-            <button id="prev-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-lg transition duration-200">
-                이전 문제
-            </button>
-            
-            <div class="flex gap-3">
-                <button id="submit-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
-                    정답 확인
-                </button>
-                <button id="next-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
-                    다음 문제
-                </button>
-            </div>
-        </div>
-
-        <!-- 통계 정보 -->
-        <div class="mt-6 bg-gray-50 p-4 rounded-lg text-sm">
-            <div class="grid grid-cols-3 gap-4 text-center">
-                <div>
-                    <div class="font-bold text-gray-800" id="total-answered">0</div>
-                    <div class="text-gray-600">푼 문제</div>
+            <!-- 문제 영역 -->
+            <div class="mb-6">
+                <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                    <div class="text-sm text-gray-500 mb-2">
+                        <span id="question-type">진위형</span> | 
+                        <span id="question-layer">대분류</span> |
+                        <span id="question-qcode">QCODE</span>
+                    </div>
+                    <!-- 문제 내용을 파싱 없이 그대로 표시 -->
+                    <div id="question-text" class="text-lg font-medium text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        문제를 불러오는 중...
+                    </div>
                 </div>
-                <div>
-                    <div class="font-bold text-green-600" id="total-correct">0</div>
-                    <div class="text-gray-600">정답</div>
+            </div>
+
+            <!-- 답변 버튼 영역 -->
+            <div id="answer-buttons" class="mb-6">
+                <!-- 진위형 버튼 -->
+                <div id="true-false-buttons" class="hidden flex gap-4">
+                    <button id="btn-true" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="O">
+                        O (맞다)
+                    </button>
+                    <button id="btn-false" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="X">
+                        X (틀리다)
+                    </button>
                 </div>
-                <div>
-                    <div class="font-bold text-red-600" id="total-incorrect">0</div>
-                    <div class="text-gray-600">오답</div>
+                
+                <!-- 선택형 버튼 -->
+                <div id="choice-buttons" class="hidden grid grid-cols-2 gap-3">
+                    <button id="btn-1" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="1">
+                        1번
+                    </button>
+                    <button id="btn-2" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="2">
+                        2번
+                    </button>
+                    <button id="btn-3" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="3">
+                        3번
+                    </button>
+                    <button id="btn-4" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="4">
+                        4번
+                    </button>
+                </div>
+            </div>
+
+            <!-- 결과 표시 영역 -->
+            <div id="result-area" class="hidden mb-6 p-4 rounded-lg">
+                <div id="result-message" class="text-lg font-bold mb-2"></div>
+                <div id="explanation-area" class="text-sm text-gray-600 bg-gray-50 p-3 rounded border"></div>
+            </div>
+
+            <!-- 컨트롤 버튼 -->
+            <div class="flex justify-between items-center">
+                <button id="prev-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-lg transition duration-200">
+                    이전 문제
+                </button>
+                
+                <div class="flex gap-3">
+                    <button id="submit-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
+                        정답 확인
+                    </button>
+                    <button id="next-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
+                        다음 문제
+                    </button>
+                </div>
+            </div>
+
+            <!-- 통계 정보 -->
+            <div class="mt-6 bg-gray-50 p-4 rounded-lg text-sm">
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                        <div class="font-bold text-gray-800" id="total-answered">0</div>
+                        <div class="text-gray-600">푼 문제</div>
+                    </div>
+                    <div>
+                        <div class="font-bold text-green-600" id="total-correct">0</div>
+                        <div class="text-gray-600">정답</div>
+                    </div>
+                    <div>
+                        <div class="font-bold text-red-600" id="total-incorrect">0</div>
+                        <div class="text-gray-600">오답</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -128,69 +140,9 @@
 
     <script>
         // ========================================
-        // 789개 문제 데이터 (샘플 - 실제로는 전체 데이터 포함)
-        // ========================================
-        const questions = [
-            {
-                "INDEX": "1",
-                "QCODE": "ABANK-0001", 
-                "SOURCE": "인스교재",
-                "LAYER1": "06재산보험",
-                "LAYER2": "화재보험",
-                "TYPE": "진위형",
-                "QUESTION": "일반화재보험은 일반물건과 공장물건에 대해서 보장을 제공한다.",
-                "ANSWER": "O",
-                "EXPLAIN": "일반화재보험은 일반물건(주택, 상가 등)과 공장물건 모두에 대해 화재로 인한 손해를 보장합니다."
-            },
-            {
-                "INDEX": "2",
-                "QCODE": "ABANK-0002",
-                "SOURCE": "인스교재", 
-                "LAYER1": "06재산보험",
-                "LAYER2": "화재보험",
-                "TYPE": "선택형",
-                "QUESTION": "화재보험의 특징으로 옳지 않은 것은?\n\n1) 손해보험 중 가장 기본적인 보험이다\n2) 실손보상의 원칙이 적용된다\n3) 보험기간은 통상 1년이다\n4) 보험의 목적물은 반드시 건물이어야 한다",
-                "ANSWER": "4",
-                "EXPLAIN": "화재보험의 목적물은 건물뿐만 아니라 동산(가구, 재고 등)도 포함될 수 있습니다."
-            },
-            {
-                "INDEX": "3",
-                "QCODE": "ABANK-0003",
-                "SOURCE": "인스교재",
-                "LAYER1": "07배상책임보험", 
-                "LAYER2": "배상책임보험개요",
-                "TYPE": "진위형",
-                "QUESTION": "영업배상책임보험은 피보험자의 영업활동 중 발생한 제3자에 대한 법률상 배상책임을 담보한다.",
-                "ANSWER": "O",
-                "EXPLAIN": "영업배상책임보험은 영업활동 과정에서 제3자에게 발생시킨 신체상해나 재물손해에 대한 법률상 배상책임을 보장합니다."
-            },
-            {
-                "INDEX": "4", 
-                "QCODE": "ABANK-0004",
-                "SOURCE": "인스교재",
-                "LAYER1": "06재산보험",
-                "LAYER2": "동산종합보험",
-                "TYPE": "선택형",
-                "QUESTION": "동산종합보험에 대한 설명으로 옳은 것은?\n\n1) 주택 외의 건물 내 동산만 담보한다\n2) 화재로 인한 손해만 보상한다\n3) 도난 손해는 보상하지 않는다\n4) 포괄 담보 방식으로 운영된다",
-                "ANSWER": "4",
-                "EXPLAIN": "동산종합보험은 Named Perils 방식이 아닌 All Risks(포괄담보) 방식으로 운영되어 특별히 제외되지 않은 모든 위험을 담보합니다."
-            },
-            {
-                "INDEX": "5",
-                "QCODE": "ABANK-0005", 
-                "SOURCE": "인스교재",
-                "LAYER1": "08특종보험",
-                "LAYER2": "기계보험",
-                "TYPE": "진위형",
-                "QUESTION": "기계보험은 기계장치의 고장으로 인한 직접적인 손해를 보상하는 보험이다.",
-                "ANSWER": "O",
-                "EXPLAIN": "기계보험은 급격하고 우연한 기계장치의 고장으로 인해 발생하는 물리적 손해를 직접 보상하는 보험입니다."
-            }
-        ];
-
-        // ========================================
         // 전역 변수
         // ========================================
+        let questions = [];
         let currentQuestionIndex = 0;
         let selectedAnswer = null;
         let isAnswered = false;
@@ -203,12 +155,16 @@
         // ========================================
         // DOM 요소
         // ========================================
+        const loadingArea = document.getElementById('loading-area');
+        const loadingStatus = document.getElementById('loading-status');
+        const mainApp = document.getElementById('main-app');
         const currentNumberElem = document.getElementById('current-number');
         const totalNumberElem = document.getElementById('total-number');
         const accuracyElem = document.getElementById('accuracy');
         const progressBarElem = document.getElementById('progress-bar');
         const questionTypeElem = document.getElementById('question-type');
         const questionLayerElem = document.getElementById('question-layer');
+        const questionQcodeElem = document.getElementById('question-qcode');
         const questionTextElem = document.getElementById('question-text');
         const trueFalseButtons = document.getElementById('true-false-buttons');
         const choiceButtons = document.getElementById('choice-buttons');
@@ -223,6 +179,53 @@
         const totalIncorrectElem = document.getElementById('total-incorrect');
 
         // ========================================
+        // CSV 데이터 로딩 함수
+        // ========================================
+        async function loadCSVData() {
+            try {
+                loadingStatus.textContent = 'ins_789_final_dev.csv 파일을 불러오는 중...';
+                
+                const response = await fetch('ins_789_final_dev.csv');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                loadingStatus.textContent = 'CSV 데이터를 파싱하는 중...';
+                
+                return new Promise((resolve, reject) => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            if (results.errors.length > 0) {
+                                console.warn('CSV 파싱 경고:', results.errors);
+                            }
+                            
+                            // 유효한 문제만 필터링 (QCODE와 QUESTION이 있는 것)
+                            const validQuestions = results.data.filter(row => 
+                                row.QCODE && 
+                                row.QUESTION && 
+                                row.QUESTION.trim() !== ''
+                            );
+                            
+                            loadingStatus.textContent = `${validQuestions.length}개 문제 로드 완료!`;
+                            resolve(validQuestions);
+                        },
+                        error: function(error) {
+                            reject(error);
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                loadingStatus.textContent = `데이터 로딩 실패: ${error.message}`;
+                console.error('CSV 로딩 오류:', error);
+                throw error;
+            }
+        }
+
+        // ========================================
         // 핵심 함수들
         // ========================================
 
@@ -233,11 +236,12 @@
             // 문제 정보 업데이트
             currentNumberElem.textContent = currentQuestionIndex + 1;
             totalNumberElem.textContent = questions.length;
-            questionTypeElem.textContent = question.TYPE;
+            questionTypeElem.textContent = question.TYPE || '진위형';
             questionLayerElem.textContent = question.LAYER1 || '일반';
+            questionQcodeElem.textContent = question.QCODE || 'N/A';
             
             // 문제 내용을 파싱 없이 그대로 표시 (조대표님 요구사항)
-            questionTextElem.textContent = question.QUESTION;
+            questionTextElem.textContent = question.QUESTION || '문제 내용이 없습니다.';
             
             // 문제 유형에 따라 버튼 표시
             if (question.TYPE === '진위형') {
@@ -246,6 +250,10 @@
             } else if (question.TYPE === '선택형') {
                 trueFalseButtons.classList.add('hidden'); 
                 choiceButtons.classList.remove('hidden');
+            } else {
+                // 유형이 명확하지 않은 경우 기본값으로 진위형 표시
+                trueFalseButtons.classList.remove('hidden');
+                choiceButtons.classList.add('hidden');
             }
             
             // 상태 초기화
@@ -287,7 +295,7 @@
             if (!selectedAnswer || isAnswered) return;
             
             const question = questions[currentQuestionIndex];
-            const correctAnswer = question.ANSWER.trim();
+            const correctAnswer = (question.ANSWER || '').trim();
             const isCorrect = selectedAnswer === correctAnswer;
             
             isAnswered = true;
@@ -407,10 +415,10 @@
             
             const question = questions[currentQuestionIndex];
             
-            if (question.TYPE === '진위형') {
+            if (question && question.TYPE === '진위형') {
                 if (e.key === 'o' || e.key === 'O') selectAnswer('O');
                 if (e.key === 'x' || e.key === 'X') selectAnswer('X');
-            } else if (question.TYPE === '선택형') {
+            } else if (question && question.TYPE === '선택형') {
                 if (e.key >= '1' && e.key <= '4') selectAnswer(e.key);
             }
             
@@ -422,10 +430,36 @@
         // ========================================
         // 앱 초기화
         // ========================================
-        function initApp() {
-            console.log(`AICU 퀴즈앱 로드 완료: ${questions.length}개 문제`);
-            displayQuestion();
-            updateStats();
+        async function initApp() {
+            try {
+                // CSV 데이터 로딩
+                questions = await loadCSVData();
+                
+                if (questions.length === 0) {
+                    throw new Error('유효한 문제가 없습니다.');
+                }
+                
+                console.log(`AICU 퀴즈앱 로드 완료: ${questions.length}개 문제`);
+                
+                // 로딩 화면 숨기고 메인 앱 표시
+                loadingArea.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+                
+                // 첫 번째 문제 표시
+                displayQuestion();
+                updateStats();
+                
+            } catch (error) {
+                console.error('앱 초기화 오류:', error);
+                loadingStatus.innerHTML = `
+                    <span class="text-red-600">❌ 앱 로딩 실패</span><br>
+                    <span class="text-sm">${error.message}</span><br>
+                    <span class="text-xs text-gray-500 mt-2">
+                        ins_789_final_dev.csv 파일이 같은 폴더에 있는지 확인하고<br>
+                        웹서버(Live Server 등)에서 실행해주세요.
+                    </span>
+                `;
+            }
         }
 
         // 앱 시작
