@@ -183,9 +183,9 @@
         // ========================================
         async function loadCSVData() {
             try {
-                loadingStatus.textContent = 'ins_789_final_dev.csv 파일을 불러오는 중...';
+                loadingStatus.textContent = 'ins_master_db.csv 파일을 불러오는 중...';
                 
-                const response = await fetch('ins_789_final_dev.csv');
+                const response = await fetch('ins_master_db.csv');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -202,11 +202,12 @@
                                 console.warn('CSV 파싱 경고:', results.errors);
                             }
                             
-                            // 유효한 문제만 필터링 (QCODE와 QUESTION이 있는 것)
+                            // 인스교재 문제만 필터링 (index.html과 동일하게)
                             const validQuestions = results.data.filter(row => 
+                                row.SOURCE === '인스교재' && 
                                 row.QCODE && 
                                 row.QUESTION && 
-                                row.QUESTION.trim() !== ''
+                                row.ANSWER
                             );
                             
                             loadingStatus.textContent = `${validQuestions.length}개 문제 로드 완료!`;
@@ -455,7 +456,7 @@
                     <span class="text-red-600">❌ 앱 로딩 실패</span><br>
                     <span class="text-sm">${error.message}</span><br>
                     <span class="text-xs text-gray-500 mt-2">
-                        ins_789_final_dev.csv 파일이 같은 폴더에 있는지 확인하고<br>
+                        ins_master_db.csv 파일이 같은 폴더에 있는지 확인하고<br>
                         웹서버(Live Server 등)에서 실행해주세요.
                     </span>
                 `;
