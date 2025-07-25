@@ -609,6 +609,14 @@
             }
         });
 
+        // 앱 시작 함수 (UI V2.3의 모드 선택 화면으로 전환)
+        function startAppWithModeSelection() {
+            document.getElementById('loading-area').classList.add('hidden');
+            document.getElementById('mode-selection-screen').classList.remove('hidden'); // 모드 선택 화면 표시
+            document.getElementById('current-mode').textContent = '모드 선택'; // 헤더 모드 초기화
+            updateStats(); // 통계 초기 업데이트
+        }
+
         // 페이지 로드 시 CSV 데이터 로딩 시작
         window.addEventListener('load', loadCSVData);
     </script>
