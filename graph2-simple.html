@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AICU 학습앱 - 합격 기준 대비 점수</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="graph-module.js"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <h1 class="text-3xl font-bold text-center text-blue-700 mb-8">합격 기준 대비 현재 점수</h1>
+        
+        <!-- 헤더 통계 요약 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">전체 학습 현황</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-blue-600" id="total-questions">1,379</div>
+                    <div class="text-sm text-gray-600">전체 문제</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-600" id="completed-questions">0</div>
+                    <div class="text-sm text-gray-600">완료한 문제</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-purple-600" id="overall-progress-rate">0%</div>
+                    <div class="text-sm text-gray-600">전체 진도율</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-orange-600" id="daily-progress-rate">0%</div>
+                    <div class="text-sm text-gray-600">오늘 진도율</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 1. 현재상태 총괄 (컴팩트 디자인) -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">현재상태 총괄</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 과목별 점수 카드 -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">과목별 점수</h3>
+                    <div class="space-y-2" id="subject-cards">
+                        <!-- 동적으로 생성될 과목별 카드들 -->
+                    </div>
+                </div>
+                
+                <!-- 전체 요약 카드 -->
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">전체 요약</h3>
+                    <div class="space-y-3" id="summary-cards">
+                        <!-- 동적으로 생성될 요약 카드들 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 현재상태 그래프 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">현재상태 그래프</h3>
+            <canvas id="scoreChart" width="800" height="400"></canvas>
+        </div>
+
+        <!-- 테스트 버튼 -->
+        <div class="text-center mt-8">
+            <button onclick="generateTestData()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg">
+                테스트 데이터 생성
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 그래프 모듈 초기화
+        window.addEventListener('load', function() {
+            window.graphModule.showGraph();
+        });
+    </script>
+</body>
+</html> 

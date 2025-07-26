@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AICU 학습앱 - 진도 통계 및 그래프 모듈</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .pass-criteria {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .score-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <h1 class="text-3xl font-bold text-center text-blue-700 mb-8">AICU 학습앱 - 진도 통계 및 그래프 모듈</h1>
+        
+        <!-- 합격 기준 및 현재 점수 대시보드 -->
+        <div class="pass-criteria rounded-lg shadow-lg p-6 mb-8 text-white">
+            <h2 class="text-2xl font-semibold mb-4">📊 합격 기준 대비 현재 점수</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="text-center">
+                    <div class="text-4xl font-bold" id="overall-score">0</div>
+                    <div class="text-sm opacity-90">전체 평균 점수</div>
+                    <div class="text-xs opacity-75">목표: 60점</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold" id="lowest-category-score">0</div>
+                    <div class="text-sm opacity-90">최저 과목 점수</div>
+                    <div class="text-xs opacity-75">목표: 40점</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold" id="pass-status">미합격</div>
+                    <div class="text-sm opacity-90">합격 여부</div>
+                    <div class="text-xs opacity-75">40점 이상 + 평균 60점</div>
+                </div>
+            </div>
+            <div class="bg-white bg-opacity-20 rounded-lg p-4">
+                <h3 class="text-lg font-semibold mb-2">🎯 합격 기준</h3>
+                <ul class="text-sm space-y-1">
+                    <li>• 각 대분류 과목별 40점 이상 필수</li>
+                    <li>• 전체 평균 60점 이상 필수</li>
+                    <li>• 두 조건 모두 만족해야 합격</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 합격 기준 및 현재 점수 대시보드 -->
+        <div class="pass-criteria rounded-lg shadow-lg p-6 mb-8 text-white">
+            <h2 class="text-2xl font-semibold mb-4">📊 합격 기준 대비 현재 점수</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="text-center">
+                    <div class="text-4xl font-bold" id="overall-score">0</div>
+                    <div class="text-sm opacity-90">전체 평균 점수</div>
+                    <div class="text-xs opacity-75">목표: 60점</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold" id="lowest-category-score">0</div>
+                    <div class="text-sm opacity-90">최저 과목 점수</div>
+                    <div class="text-xs opacity-75">목표: 40점</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold" id="pass-status">미합격</div>
+                    <div class="text-sm opacity-90">합격 여부</div>
+                    <div class="text-xs opacity-75">40점 이상 + 평균 60점</div>
+                </div>
+            </div>
+            <div class="bg-white bg-opacity-20 rounded-lg p-4">
+                <h3 class="text-lg font-semibold mb-2">🎯 합격 기준</h3>
+                <ul class="text-sm space-y-1">
+                    <li>• 각 대분류 과목별 40점 이상 필수</li>
+                    <li>• 전체 평균 60점 이상 필수</li>
+                    <li>• 두 조건 모두 만족해야 합격</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 헤더 통계 요약 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">전체 학습 현황</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-blue-600" id="total-questions">1,379</div>
+                    <div class="text-sm text-gray-600">전체 문제</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-600" id="completed-questions">0</div>
+                    <div class="text-sm text-gray-600">완료한 문제</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-purple-600" id="overall-progress-rate">0%</div>
+                    <div class="text-sm text-gray-600">전체 진도율</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-orange-600" id="daily-progress-rate">0%</div>
+                    <div class="text-sm text-gray-600">오늘 진도율</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 대분류별 점수 및 합격 기준 비교 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">대분류별 점수 및 합격 기준 비교</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 대분류별 점수 차트 -->
+                <div>
+                    <canvas id="categoryScoreChart" width="400" height="300"></canvas>
+                </div>
+                <!-- 대분류별 상세 점수 테이블 -->
+                <div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-2 text-left">대분류</th>
+                                    <th class="px-4 py-2 text-center">현재 점수</th>
+                                    <th class="px-4 py-2 text-center">합격 기준</th>
+                                    <th class="px-4 py-2 text-center">상태</th>
+                                </tr>
+                            </thead>
+                            <tbody id="category-score-table">
+                                <!-- 동적으로 생성될 점수 행들 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 대분류별 점수 및 합격 기준 비교 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">대분류별 점수 및 합격 기준 비교</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 대분류별 점수 차트 -->
+                <div>
+                    <canvas id="categoryScoreChart" width="400" height="300"></canvas>
+                </div>
+                <!-- 대분류별 상세 점수 테이블 -->
+                <div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-2 text-left">대분류</th>
+                                    <th class="px-4 py-2 text-center">현재 점수</th>
+                                    <th class="px-4 py-2 text-center">합격 기준</th>
+                                    <th class="px-4 py-2 text-center">상태</th>
+                                </tr>
+                            </thead>
+                            <tbody id="category-score-table">
+                                <!-- 동적으로 생성될 점수 행들 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 대분류별 진도 통계 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 대분류별 막대 그래프 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">대분류별 학습 진도</h3>
+                <canvas id="layer1Chart" width="400" height="300"></canvas>
+            </div>
+
+            <!-- 대분류별 상세 통계 테이블 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">대분류별 상세 통계</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-4 py-2 text-left">대분류</th>
+                                <th class="px-4 py-2 text-center">전체</th>
+                                <th class="px-4 py-2 text-center">완료</th>
+                                <th class="px-4 py-2 text-center">진도율</th>
+                                <th class="px-4 py-2 text-center">정답률</th>
+                            </tr>
+                        </thead>
+                        <tbody id="layer1-stats-table">
+                            <!-- 동적으로 생성될 통계 행들 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 일일 학습 추이 그래프 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">일일 학습 추이 (최근 7일)</h3>
+            <canvas id="dailyChart" width="800" height="300"></canvas>
+        </div>
+
+        <!-- 학습 이력 관리 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">학습 이력 관리</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="generateSampleData()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                    샘플 데이터 생성
+                </button>
+                <button onclick="clearAllData()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                    모든 데이터 초기화
+                </button>
+                <button onclick="exportData()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                    데이터 내보내기
+                </button>
+            </div>
+        </div>
+
+        <!-- 최근 학습 기록 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">최근 학습 기록</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="px-4 py-2 text-left">날짜</th>
+                            <th class="px-4 py-2 text-left">문제 코드</th>
+                            <th class="px-4 py-2 text-left">대분류</th>
+                            <th class="px-4 py-2 text-left">중분류</th>
+                            <th class="px-4 py-2 text-center">결과</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-history-table">
+                        <!-- 동적으로 생성될 학습 기록 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let questions = [];
+        let layer1Chart = null;
+        let dailyChart = null;
+        let categoryScoreChart = null;
+
+        // 샘플 데이터 생성 (테스트용)
+        function generateSampleData() {
+            const sampleData = [];
+            const layer1Categories = ['06재산보험', '07특종보험', '08배상책임보험', '09해상보험'];
+            const today = new Date();
+            
+            // 최근 30일간의 샘플 데이터 생성
+            for (let i = 0; i < 30; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                
+                // 하루에 5-15개 문제 풀이
+                const dailyQuestions = Math.floor(Math.random() * 11) + 5;
+                
+                for (let j = 0; j < dailyQuestions; j++) {
+                    const layer1 = layer1Categories[Math.floor(Math.random() * layer1Categories.length)];
+                    const isCorrect = Math.random() > 0.3; // 70% 정답률
+                    
+                    sampleData.push({
+                        qcode: `SAMPLE-${String(i).padStart(3, '0')}-${String(j).padStart(2, '0')}`,
+                        timestamp: date.toISOString(),
+                        isCorrect: isCorrect,
+                        layer1: layer1,
+                        layer2: `${layer1} > 세부분류${j + 1}`
+                    });
+                }
+            }
+            
+            localStorage.setItem('aciu_learning_history', JSON.stringify(sampleData));
+            updateAllStatistics();
+            alert('샘플 데이터가 생성되었습니다!');
+        }
+
+        // 모든 데이터 초기화
+        function clearAllData() {
+            if (confirm('모든 학습 데이터를 초기화하시겠습니까?')) {
+                localStorage.removeItem('aciu_learning_history');
+                updateAllStatistics();
+                alert('모든 데이터가 초기화되었습니다!');
+            }
+        }
+
+        // 데이터 내보내기
+        function exportData() {
+            const data = localStorage.getItem('aciu_learning_history');
+            if (data) {
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `aciu_learning_data_${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } else {
+                alert('내보낼 데이터가 없습니다.');
+            }
+        }
+
+        // 전체 통계 업데이트
+        function updateAllStatistics() {
+            updateProgressRates();
+            updateLayer1Statistics();
+            updateDailyChart();
+            updateRecentHistory();
+            updatePassCriteria();
+        }
+
+        // 합격 기준 업데이트
+        function updatePassCriteria() {
+            const key = 'aciu_learning_history';
+            let data = [];
+            try { 
+                data = JSON.parse(localStorage.getItem(key)) || []; 
+            } catch (e) {
+                console.error('데이터 파싱 오류:', e);
+                data = [];
+            }
+            
+            // 대분류별 점수 계산
+            const layer1Scores = {};
+            const layer1Categories = ['06재산보험', '07특종보험', '08배상책임보험', '09해상보험'];
+            
+            // 각 대분류별 기본값 설정
+            layer1Categories.forEach(category => {
+                layer1Scores[category] = {
+                    total: 0,
+                    correct: 0,
+                    score: 0
+                };
+            });
+            
+            // 실제 데이터에서 점수 계산
+            data.forEach(item => {
+                if (layer1Scores[item.layer1]) {
+                    layer1Scores[item.layer1].total++;
+                    if (item.isCorrect) {
+                        layer1Scores[item.layer1].correct++;
+                    }
+                }
+            });
+            
+            // 점수 계산 (정답률을 100점 만점으로 환산)
+            Object.keys(layer1Scores).forEach(category => {
+                const stats = layer1Scores[category];
+                stats.score = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+            });
+            
+            // 전체 평균 점수 계산
+            const scores = Object.values(layer1Scores).map(s => s.score);
+            const overallScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+            
+            // 최저 과목 점수
+            const lowestScore = Math.min(...scores);
+            
+            // 합격 여부 판단
+            const isPass = overallScore >= 60 && lowestScore >= 40;
+            
+            // UI 업데이트
+            document.getElementById('overall-score').textContent = overallScore;
+            document.getElementById('lowest-category-score').textContent = lowestScore;
+            document.getElementById('pass-status').textContent = isPass ? '합격' : '미합격';
+            document.getElementById('pass-status').className = isPass ? 'text-4xl font-bold text-green-300' : 'text-4xl font-bold text-red-300';
+            
+            // 합격 기준 차트 업데이트
+            updateCategoryScoreChart(layer1Scores);
+            updateCategoryScoreTable(layer1Scores);
+        }
+
+        // 대분류별 점수 차트 업데이트
+        function updateCategoryScoreChart(layer1Scores) {
+            const ctx = document.getElementById('categoryScoreChart').getContext('2d');
+            
+            if (categoryScoreChart) {
+                categoryScoreChart.destroy();
+            }
+            
+            const categories = Object.keys(layer1Scores);
+            const scores = categories.map(cat => layer1Scores[cat].score);
+            const passCriteria = categories.map(() => 40); // 합격 기준 40점
+            
+            categoryScoreChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: categories,
+                    datasets: [
+                        {
+                            label: '현재 점수',
+                            data: scores,
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '합격 기준 (40점)',
+                            data: passCriteria,
+                            backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 2,
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: '점수'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: '대분류별 점수 vs 합격 기준'
+                        }
+                    }
+                }
+            });
+        }
+
+        // 대분류별 점수 테이블 업데이트
+        function updateCategoryScoreTable(layer1Scores) {
+            const tableBody = document.getElementById('category-score-table');
+            tableBody.innerHTML = '';
+            
+            Object.keys(layer1Scores).forEach(category => {
+                const stats = layer1Scores[category];
+                const isPass = stats.score >= 40;
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-4 py-2 font-medium">${category}</td>
+                    <td class="px-4 py-2 text-center">
+                        <span class="font-semibold ${isPass ? 'text-green-600' : 'text-red-600'}">
+                            ${stats.score}점
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 text-center text-gray-600">40점</td>
+                    <td class="px-4 py-2 text-center">
+                        <span class="px-2 py-1 rounded text-xs font-semibold ${isPass ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${isPass ? '합격' : '미합격'}
+                        </span>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 진도율 계산 및 헤더 UI 업데이트
+        function updateProgressRates() {
+            const key = 'aciu_learning_history';
+            let data = [];
+            try { 
+                data = JSON.parse(localStorage.getItem(key)) || []; 
+            } catch (e) {
+                console.error('데이터 파싱 오류:', e);
+                data = [];
+            }
+            
+            const totalQuestions = 1379; // 전체 문제 수
+            const solvedQcodes = new Set(data.map(d => d.qcode));
+            const overallRate = totalQuestions > 0 ? Math.round((solvedQcodes.size / totalQuestions) * 100) : 0;
+            
+            // 일일 진도율
+            const today = new Date().toISOString().slice(0, 10);
+            const todayData = data.filter(d => d.timestamp.slice(0, 10) === today);
+            const todaySolved = todayData.length;
+            const todayCorrect = todayData.filter(d => d.isCorrect).length;
+            const dailyRate = todaySolved > 0 ? Math.round((todayCorrect / todaySolved) * 100) : 0;
+            
+            // UI 업데이트
+            document.getElementById('total-questions').textContent = totalQuestions.toLocaleString();
+            document.getElementById('completed-questions').textContent = solvedQcodes.size.toLocaleString();
+            document.getElementById('overall-progress-rate').textContent = `${overallRate}%`;
+            document.getElementById('daily-progress-rate').textContent = `${dailyRate}%`;
+        }
+
+        // 대분류별 통계 업데이트
+        function updateLayer1Statistics() {
+            const key = 'aciu_learning_history';
+            let data = [];
+            try { 
+                data = JSON.parse(localStorage.getItem(key)) || []; 
+            } catch (e) {
+                console.error('데이터 파싱 오류:', e);
+                data = [];
+            }
+            
+            // 대분류별 통계 계산
+            const layer1Stats = {};
+            const layer1Categories = ['06재산보험', '07특종보험', '08배상책임보험', '09해상보험'];
+            
+            // 각 대분류별 기본값 설정
+            layer1Categories.forEach(category => {
+                layer1Stats[category] = {
+                    total: 0,
+                    completed: 0,
+                    correct: 0,
+                    progress: 0,
+                    accuracy: 0
+                };
+            });
+            
+            // 실제 데이터에서 통계 계산
+            data.forEach(item => {
+                if (layer1Stats[item.layer1]) {
+                    layer1Stats[item.layer1].completed++;
+                    if (item.isCorrect) {
+                        layer1Stats[item.layer1].correct++;
+                    }
+                }
+            });
+            
+            // 전체 문제 수 분배 (예시)
+            layer1Stats['06재산보험'].total = 400;
+            layer1Stats['07특종보험'].total = 350;
+            layer1Stats['08배상책임보험'].total = 300;
+            layer1Stats['09해상보험'].total = 329;
+            
+            // 진도율과 정답률 계산
+            Object.keys(layer1Stats).forEach(category => {
+                const stats = layer1Stats[category];
+                stats.progress = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+                stats.accuracy = stats.completed > 0 ? Math.round((stats.correct / stats.completed) * 100) : 0;
+            });
+            
+            // 테이블 업데이트
+            updateLayer1Table(layer1Stats);
+            
+            // 차트 업데이트
+            updateLayer1Chart(layer1Stats);
+        }
+
+        // 대분류별 통계 테이블 업데이트
+        function updateLayer1Table(layer1Stats) {
+            const tableBody = document.getElementById('layer1-stats-table');
+            tableBody.innerHTML = '';
+            
+            Object.keys(layer1Stats).forEach(category => {
+                const stats = layer1Stats[category];
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-4 py-2 font-medium">${category}</td>
+                    <td class="px-4 py-2 text-center">${stats.total}</td>
+                    <td class="px-4 py-2 text-center">${stats.completed}</td>
+                    <td class="px-4 py-2 text-center">
+                        <span class="font-semibold ${stats.progress >= 80 ? 'text-green-600' : stats.progress >= 50 ? 'text-yellow-600' : 'text-red-600'}">
+                            ${stats.progress}%
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 text-center">
+                        <span class="font-semibold ${stats.accuracy >= 80 ? 'text-green-600' : stats.accuracy >= 50 ? 'text-yellow-600' : 'text-red-600'}">
+                            ${stats.accuracy}%
+                        </span>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 대분류별 차트 업데이트
+        function updateLayer1Chart(layer1Stats) {
+            const ctx = document.getElementById('layer1Chart').getContext('2d');
+            
+            if (layer1Chart) {
+                layer1Chart.destroy();
+            }
+            
+            const categories = Object.keys(layer1Stats);
+            const progressData = categories.map(cat => layer1Stats[cat].progress);
+            const accuracyData = categories.map(cat => layer1Stats[cat].accuracy);
+            
+            layer1Chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: categories,
+                    datasets: [
+                        {
+                            label: '진도율 (%)',
+                            data: progressData,
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '정답률 (%)',
+                            data: accuracyData,
+                            backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+
+        // 일일 학습 추이 차트 업데이트
+        function updateDailyChart() {
+            const key = 'aciu_learning_history';
+            let data = [];
+            try { 
+                data = JSON.parse(localStorage.getItem(key)) || []; 
+            } catch (e) {
+                console.error('데이터 파싱 오류:', e);
+                data = [];
+            }
+            
+            // 최근 7일 데이터 준비
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                last7Days.push(date.toISOString().slice(0, 10));
+            }
+            
+            const dailyStats = {};
+            last7Days.forEach(date => {
+                dailyStats[date] = { solved: 0, correct: 0 };
+            });
+            
+            // 데이터 분석
+            data.forEach(item => {
+                const date = item.timestamp.slice(0, 10);
+                if (dailyStats[date]) {
+                    dailyStats[date].solved++;
+                    if (item.isCorrect) {
+                        dailyStats[date].correct++;
+                    }
+                }
+            });
+            
+            const ctx = document.getElementById('dailyChart').getContext('2d');
+            
+            if (dailyChart) {
+                dailyChart.destroy();
+            }
+            
+            const labels = last7Days.map(date => {
+                const d = new Date(date);
+                return `${d.getMonth() + 1}/${d.getDate()}`;
+            });
+            
+            const solvedData = last7Days.map(date => dailyStats[date].solved);
+            const correctData = last7Days.map(date => dailyStats[date].correct);
+            
+            dailyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '푼 문제 수',
+                            data: solvedData,
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: '정답 수',
+                            data: correctData,
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+
+        // 최근 학습 기록 업데이트
+        function updateRecentHistory() {
+            const key = 'aciu_learning_history';
+            let data = [];
+            try { 
+                data = JSON.parse(localStorage.getItem(key)) || []; 
+            } catch (e) {
+                console.error('데이터 파싱 오류:', e);
+                data = [];
+            }
+            
+            // 최근 10개 기록만 표시
+            const recentData = data.slice(-10).reverse();
+            const tableBody = document.getElementById('recent-history-table');
+            tableBody.innerHTML = '';
+            
+            recentData.forEach(item => {
+                const date = new Date(item.timestamp);
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-4 py-2">${date.toLocaleDateString('ko-KR')}</td>
+                    <td class="px-4 py-2 font-mono">${item.qcode}</td>
+                    <td class="px-4 py-2">${item.layer1}</td>
+                    <td class="px-4 py-2">${item.layer2}</td>
+                    <td class="px-4 py-2 text-center">
+                        <span class="px-2 py-1 rounded text-xs font-semibold ${item.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${item.isCorrect ? '정답' : '오답'}
+                        </span>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', function() {
+            updateAllStatistics();
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AICU 학습앱 - 메인 + 그래프 통합</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="graph-module.js"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- 기존 AICU 앱 구조 -->
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <h1 class="text-3xl font-bold text-center text-blue-700 mb-8">AICU 학습앱</h1>
+        
+        <!-- 기존 앱 내용 (간소화) -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">학습 모드 선택</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="startLearning('random')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg">
+                    랜덤 학습
+                </button>
+                <button onclick="startLearning('sequential')" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg">
+                    순차 학습
+                </button>
+                <button onclick="showGraphSection()" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 px-6 rounded-lg">
+                    📊 그래프 보기
+                </button>
+            </div>
+        </div>
+
+        <!-- 그래프 섹션 (기본적으로 숨김) -->
+        <div id="graph-section" class="hidden">
+            <!-- 헤더 통계 요약 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">전체 학습 현황</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-blue-600" id="total-questions">1,379</div>
+                        <div class="text-sm text-gray-600">전체 문제</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600" id="completed-questions">0</div>
+                        <div class="text-sm text-gray-600">완료한 문제</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-purple-600" id="overall-progress-rate">0%</div>
+                        <div class="text-sm text-gray-600">전체 진도율</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-orange-600" id="daily-progress-rate">0%</div>
+                        <div class="text-sm text-gray-600">오늘 진도율</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 현재상태 총괄 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">현재상태 총괄</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 과목별 점수 카드 -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">과목별 점수</h3>
+                        <div class="space-y-2" id="subject-cards">
+                            <!-- 동적으로 생성될 과목별 카드들 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 전체 요약 카드 -->
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">전체 요약</h3>
+                        <div class="space-y-3" id="summary-cards">
+                            <!-- 동적으로 생성될 요약 카드들 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 현재상태 그래프 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">현재상태 그래프</h3>
+                <canvas id="scoreChart" width="800" height="400"></canvas>
+            </div>
+
+            <!-- 그래프 제어 버튼 -->
+            <div class="text-center mt-8 space-x-4">
+                <button onclick="generateTestData()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg">
+                    테스트 데이터 생성
+                </button>
+                <button onclick="updateWithRealData()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg">
+                    실제 데이터로 업데이트
+                </button>
+                <button onclick="hideGraphSection()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg">
+                    그래프 숨기기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 기존 AICU 앱 함수들 (간소화)
+        function startLearning(mode) {
+            alert(`${mode === 'random' ? '랜덤' : '순차'} 학습을 시작합니다!`);
+            // 실제 학습 로직은 여기에 구현
+        }
+
+        // 그래프 섹션 표시/숨김
+        function showGraphSection() {
+            document.getElementById('graph-section').classList.remove('hidden');
+            window.graphModule.showGraph();
+        }
+
+        function hideGraphSection() {
+            document.getElementById('graph-section').classList.add('hidden');
+            window.graphModule.hideGraph();
+        }
+
+        // 실제 학습 데이터로 업데이트
+        function updateWithRealData() {
+            const key = 'aciu_learning_history';
+            let data = [];
+            try { 
+                data = JSON.parse(localStorage.getItem(key)) || []; 
+            } catch (e) {
+                console.error('데이터 파싱 오류:', e);
+                data = [];
+            }
+            
+            if (data.length > 0) {
+                window.graphModule.updateWithRealData(data);
+                alert('실제 학습 데이터로 업데이트되었습니다!');
+            } else {
+                alert('학습 데이터가 없습니다. 먼저 학습을 진행해주세요.');
+            }
+        }
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', function() {
+            console.log('AICU 앱 + 그래프 모듈 로드 완료');
+        });
+    </script>
+</body>
+</html> 

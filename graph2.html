@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AICU 학습앱 - 합격 기준 대비 점수</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <h1 class="text-3xl font-bold text-center text-blue-700 mb-8">합격 기준 대비 현재 점수</h1>
+        
+        <!-- 헤더 통계 요약 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">전체 학습 현황</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-blue-600" id="total-questions">1,379</div>
+                    <div class="text-sm text-gray-600">전체 문제</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-600" id="completed-questions">0</div>
+                    <div class="text-sm text-gray-600">완료한 문제</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-purple-600" id="overall-progress-rate">0%</div>
+                    <div class="text-sm text-gray-600">전체 진도율</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-orange-600" id="daily-progress-rate">0%</div>
+                    <div class="text-sm text-gray-600">오늘 진도율</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 1. 현재상태 총괄 (컴팩트 디자인) -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">현재상태 총괄</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 과목별 점수 카드 -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">과목별 점수</h3>
+                    <div class="space-y-2" id="subject-cards">
+                        <!-- 동적으로 생성될 과목별 카드들 -->
+                    </div>
+                </div>
+                
+                <!-- 전체 요약 카드 -->
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">전체 요약</h3>
+                    <div class="space-y-3" id="summary-cards">
+                        <!-- 동적으로 생성될 요약 카드들 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 현재상태 그래프 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">현재상태 그래프</h3>
+            <canvas id="scoreChart" width="800" height="400"></canvas>
+        </div>
+
+        <!-- 테스트 버튼 -->
+        <div class="text-center mt-8">
+            <button onclick="generateTestData()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg">
+                테스트 데이터 생성
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let scoreChart = null;
+
+        // 테스트 데이터 생성
+        function generateTestData() {
+            const testData = [
+                { subject: '06재산보험', score: 55, pass: true },
+                { subject: '07특종보험', score: 65, pass: true },
+                { subject: '08배상책임보험', score: 67, pass: true },
+                { subject: '09해상보험', score: 30, pass: false }
+            ];
+            
+            updateScores(testData);
+        }
+
+        // 점수 업데이트
+        function updateScores(subjectScores) {
+            const scores = subjectScores.map(s => s.score);
+            const overallScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+            const lowestScore = Math.min(...scores);
+            const isPass = overallScore >= 60 && lowestScore >= 40;
+            
+            // 헤더 통계 업데이트
+            updateHeaderStats();
+            
+            // 요약 테이블 업데이트
+            updateSummaryTable(subjectScores, overallScore, isPass);
+            
+            // 차트 업데이트
+            updateChart(subjectScores, overallScore);
+        }
+
+        // 헤더 통계 업데이트
+        function updateHeaderStats() {
+            const key = 'aciu_learning_history';
+            let data = [];
+            try { 
+                data = JSON.parse(localStorage.getItem(key)) || []; 
+            } catch (e) {
+                console.error('데이터 파싱 오류:', e);
+                data = [];
+            }
+            
+            const totalQuestions = 1379; // 전체 문제 수
+            const solvedQcodes = new Set(data.map(d => d.qcode));
+            const overallRate = totalQuestions > 0 ? Math.round((solvedQcodes.size / totalQuestions) * 100) : 0;
+            
+            // 일일 진도율
+            const today = new Date().toISOString().slice(0, 10);
+            const todayData = data.filter(d => d.timestamp.slice(0, 10) === today);
+            const todaySolved = todayData.length;
+            const todayCorrect = todayData.filter(d => d.isCorrect).length;
+            const dailyRate = todaySolved > 0 ? Math.round((todayCorrect / todaySolved) * 100) : 0;
+            
+            // UI 업데이트
+            document.getElementById('total-questions').textContent = totalQuestions.toLocaleString();
+            document.getElementById('completed-questions').textContent = solvedQcodes.size.toLocaleString();
+            document.getElementById('overall-progress-rate').textContent = `${overallRate}%`;
+            document.getElementById('daily-progress-rate').textContent = `${dailyRate}%`;
+        }
+
+        // 요약 카드 업데이트 (컴팩트 디자인)
+        function updateSummaryTable(subjectScores, overallScore, isPass) {
+            // 과목별 카드 업데이트
+            const subjectCards = document.getElementById('subject-cards');
+            subjectCards.innerHTML = '';
+            
+            subjectScores.forEach(subject => {
+                const isSubjectPass = subject.score >= 40;
+                const card = document.createElement('div');
+                card.className = 'flex justify-between items-center p-2 bg-white rounded border';
+                card.innerHTML = `
+                    <div class="flex-1">
+                        <div class="font-medium text-sm">${subject.subject}</div>
+                        <div class="text-xs text-gray-500">기준: 40점</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold ${isSubjectPass ? 'text-green-600' : 'text-red-600'}">${subject.score}점</div>
+                        <div class="text-xs ${isSubjectPass ? 'text-green-600' : 'text-red-600'}">${isSubjectPass ? '합격' : '불합격'}</div>
+                    </div>
+                `;
+                subjectCards.appendChild(card);
+            });
+            
+            // 전체 요약 카드 업데이트
+            const summaryCards = document.getElementById('summary-cards');
+            summaryCards.innerHTML = '';
+            
+            // 평균 점수 카드
+            const isAvgPass = overallScore >= 60;
+            const avgCard = document.createElement('div');
+            avgCard.className = 'flex justify-between items-center p-3 bg-white rounded border';
+            avgCard.innerHTML = `
+                <div class="flex-1">
+                    <div class="font-semibold">평균점수</div>
+                    <div class="text-xs text-gray-500">기준: 60점</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-lg font-bold ${isAvgPass ? 'text-green-600' : 'text-red-600'}">${overallScore}점</div>
+                    <div class="text-xs ${isAvgPass ? 'text-green-600' : 'text-red-600'}">${isAvgPass ? '합격' : '불합격'}</div>
+                </div>
+            `;
+            summaryCards.appendChild(avgCard);
+            
+            // 최종 합격 여부 카드
+            const finalCard = document.createElement('div');
+            finalCard.className = `flex justify-between items-center p-3 rounded border ${isPass ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'}`;
+            finalCard.innerHTML = `
+                <div class="flex-1">
+                    <div class="font-bold">최종합격여부</div>
+                    <div class="text-xs text-gray-500">모든 조건 만족</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-lg font-bold ${isPass ? 'text-green-600' : 'text-red-600'}">${isPass ? '합격' : '불합격'}</div>
+                    <div class="text-xs ${isPass ? 'text-green-600' : 'text-red-600'}">${isPass ? '🎉' : '⚠️'}</div>
+                </div>
+            `;
+            summaryCards.appendChild(finalCard);
+        }
+
+        // 차트 업데이트 (과목별 + 평균)
+        function updateChart(subjectScores, overallScore) {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            
+            if (scoreChart) {
+                scoreChart.destroy();
+            }
+            
+            const subjects = subjectScores.map(s => s.subject);
+            const scores = subjectScores.map(s => s.score);
+            
+            // 평균 점수를 마지막에 추가
+            const allLabels = [...subjects, '평균'];
+            const allScores = [...scores, overallScore];
+            
+            scoreChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: allLabels,
+                    datasets: [
+                        {
+                            label: '현재 점수',
+                            data: allScores,
+                            backgroundColor: allScores.map((score, index) => {
+                                if (index === allScores.length - 1) {
+                                    // 평균 점수는 파란색
+                                    return score >= 60 ? 'rgba(59, 130, 246, 0.8)' : 'rgba(239, 68, 68, 0.8)';
+                                } else {
+                                    // 과목별 점수는 초록/빨강
+                                    return score >= 40 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)';
+                                }
+                            }),
+                            borderColor: allScores.map((score, index) => {
+                                if (index === allScores.length - 1) {
+                                    return score >= 60 ? 'rgba(59, 130, 246, 1)' : 'rgba(239, 68, 68, 1)';
+                                } else {
+                                    return score >= 40 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)';
+                                }
+                            }),
+                            borderWidth: 1
+                        },
+                        {
+                            label: '합격 기준',
+                            data: allScores.map((score, index) => {
+                                return index === allScores.length - 1 ? 60 : 40; // 평균은 60점, 과목별은 40점
+                            }),
+                            type: 'line',
+                            borderColor: 'rgba(156, 163, 175, 1)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: '점수'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: '과목별 점수 및 평균 vs 합격 기준'
+                        }
+                    }
+                }
+            });
+        }
+
+        // 초기화
+        window.addEventListener('load', function() {
+            // 초기 빈 데이터로 시작
+            const initialData = [
+                { subject: '06재산보험', score: 0, pass: false },
+                { subject: '07특종보험', score: 0, pass: false },
+                { subject: '08배상책임보험', score: 0, pass: false },
+                { subject: '09해상보험', score: 0, pass: false }
+            ];
+            updateScores(initialData);
+        });
+    </script>
+</body>
+</html> 
