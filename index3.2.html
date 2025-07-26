@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AICU QUIZ 앱</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
         body { font-family: 'Noto Sans KR', sans-serif; }
@@ -94,45 +93,39 @@
             </div>
         </div>
 
-                 <!-- 데이터 불러오기 버튼 -->
-         <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-             <div class="text-center">
-                 <button onclick="ACIUApp.ui.loadStatisticsData()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg text-lg">
-                     📊 통계 데이터 불러오기
-                 </button>
-                 <p class="text-sm text-gray-600 mt-2">버튼을 클릭하면 현재상태 총괄과 그래프가 표시됩니다</p>
-             </div>
-         </div>
+        <!-- 통계 데이터 불러오기 버튼 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="text-center">
+                <button onclick="ACIUApp.ui.loadStatisticsData()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg text-lg">
+                    📊 통계 데이터 불러오기
+                </button>
+                <p class="text-sm text-gray-600 mt-2">버튼을 클릭하면 현재상태 총괄이 표시됩니다</p>
+            </div>
+        </div>
 
-         <!-- 통계 및 그래프 섹션 (초기 숨김) -->
-         <div id="statistics-section" class="hidden">
-             <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-                 <h2 class="text-xl font-semibold text-gray-800 mb-4">현재상태 총괄</h2>
-                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                     <!-- 과목별 점수 카드 -->
-                     <div class="bg-gray-50 rounded-lg p-4">
-                         <h3 class="text-lg font-semibold text-gray-800 mb-3">과목별 점수</h3>
-                         <div class="space-y-2" id="subject-cards">
-                             <!-- 동적으로 생성될 과목별 카드들 -->
-                         </div>
-                     </div>
-                     
-                     <!-- 전체 요약 카드 -->
-                     <div class="bg-blue-50 rounded-lg p-4">
-                         <h3 class="text-lg font-semibold text-gray-800 mb-3">전체 요약</h3>
-                         <div class="space-y-3" id="summary-cards">
-                             <!-- 동적으로 생성될 요약 카드들 -->
-                         </div>
-                     </div>
-                 </div>
-             </div>
-
-             <!-- 현재상태 그래프 -->
-             <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-                 <h3 class="text-xl font-semibold text-gray-800 mb-4">현재상태 그래프</h3>
-                 <canvas id="scoreChart" style="width: 100%; height: 400px;"></canvas>
-             </div>
-         </div>
+        <!-- 통계 섹션 (초기 숨김) -->
+        <div id="statistics-section" class="hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">현재상태 총괄</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 과목별 점수 카드 -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">과목별 점수</h3>
+                        <div class="space-y-2" id="subject-cards">
+                            <!-- 동적으로 생성될 과목별 카드들 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 전체 요약 카드 -->
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">전체 요약</h3>
+                        <div class="space-y-3" id="summary-cards">
+                            <!-- 동적으로 생성될 요약 카드들 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 설정 모달 -->
@@ -161,92 +154,6 @@
     </div>
 
     <script>
-        // 전역 차트 생성 함수 (노팀장 & 코코치 합의 해결책)
-        function createScoreChart() {
-            const canvas = document.getElementById('scoreChart');
-            if (!canvas) {
-                console.error('Canvas 요소를 찾을 수 없습니다.');
-                return;
-            }
-            
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                console.error('Canvas 컨텍스트를 가져올 수 없습니다.');
-                return;
-            }
-            
-            if (typeof Chart === 'undefined') {
-                console.error('Chart.js 라이브러리가 로드되지 않았습니다.');
-                return;
-            }
-            
-            // 기존 차트 제거
-            if (window.scoreChart) {
-                window.scoreChart.destroy();
-            }
-            
-            // 더미 데이터 적용
-            const subjects = ['06재산보험', '07특종보험', '08배상책임보험', '09해상보험'];
-            const scores = [55, 65, 67, 30];
-            const overallScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-            const allLabels = [...subjects, '평균'];
-            const allScores = [...scores, overallScore];
-            
-            try {
-                window.scoreChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: allLabels,
-                        datasets: [{
-                            label: '현재 점수',
-                            data: allScores,
-                            backgroundColor: allScores.map((score, index) => {
-                                if (index === allScores.length - 1) {
-                                    return score >= 60 ? 'rgba(59, 130, 246, 0.8)' : 'rgba(239, 68, 68, 0.8)';
-                                } else {
-                                    return score >= 40 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)';
-                                }
-                            }),
-                            borderColor: allScores.map((score, index) => {
-                                if (index === allScores.length - 1) {
-                                    return score >= 60 ? 'rgba(59, 130, 246, 1)' : 'rgba(239, 68, 68, 1)';
-                                } else {
-                                    return score >= 40 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)';
-                                }
-                            }),
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                title: {
-                                    display: true,
-                                    text: '점수'
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                position: 'top'
-                            },
-                            title: {
-                                display: true,
-                                text: '과목별 점수 및 평균 vs 합격 기준'
-                            }
-                        }
-                    }
-                });
-                console.log('차트 생성 완료');
-            } catch (error) {
-                console.error('차트 생성 오류:', error);
-            }
-        }
-
         // ACIUApp 네임스페이스 구조
         const ACIUApp = {
             // 타이머 관리
@@ -256,62 +163,14 @@
                 ddayUpdate: null
             },
 
-            // 초기화
-            init() {
-                console.log('ACIUApp 초기화 시작');
-                this.compatibility.checkBrowserSupport();
-                this.data.loadQuestions();
-                this.data.loadUserSettings();
-                this.ui.updateAll();
-                this.setupEventListeners();
-                this.startTimers();
-                console.log('ACIUApp 초기화 완료');
-            },
-
-            // 이벤트 리스너 설정
-            setupEventListeners() {
-                // 모달 외부 클릭 시 닫기
-                document.getElementById('settings-modal').addEventListener('click', (e) => {
-                    if (e.target.id === 'settings-modal') {
-                        this.ui.hideSettingsModal();
-                    }
-                });
-            },
-
-            // 타이머 시작
-            startTimers() {
-                // 1초마다 시간 업데이트
-                this.timers.timeUpdate = setInterval(() => {
-                    this.ui.updateCurrentTime();
-                }, 1000);
-
-                // 5분마다 명언 교체
-                this.timers.quoteUpdate = setInterval(() => {
-                    this.ui.updateQuote();
-                }, 300000);
-
-                // 1분마다 D-Day 업데이트
-                this.timers.ddayUpdate = setInterval(() => {
-                    this.ui.updateDdayCount();
-                }, 60000);
-            },
-
-            // 타이머 정리
-            destroy() {
-                Object.values(this.timers).forEach(timer => {
-                    if (timer) clearInterval(timer);
-                });
-            },
-
-            // 브라우저 호환성 체크
+            // 브라우저 호환성 확인
             compatibility: {
                 checkBrowserSupport() {
-                    const isIE11 = navigator.userAgent.indexOf('MSIE') !== -1 || 
-                                   navigator.appVersion.indexOf('Trident/') > -1;
-                    
-                    if (isIE11) {
-                        console.warn('IE11 환경에서는 일부 기능이 제한될 수 있습니다.');
+                    if (!window.localStorage) {
+                        this.showErrorMessage('localStorage를 지원하지 않는 브라우저입니다.');
+                        return false;
                     }
+                    return true;
                 }
             },
 
@@ -319,52 +178,55 @@
             data: {
                 questions: [],
                 userSettings: {
-                    name: "조대표님",
-                    examDate: "2025-11-15",
+                    name: '조대표님',
+                    examDate: '2024-12-31',
                     lastUpdated: new Date().toISOString()
                 },
                 learningHistory: {
-                    totalAttempts: 0,
-                    correctAttempts: 0,
-                    lastCalculated: 0,
-                    attempts: {}
+                    attempts: {},
+                    lastUpdated: new Date().toISOString()
                 },
 
-                                            // CSV 데이터 로딩
-                            async loadQuestions() {
-                                try {
-                                    const response = await fetch('ins_master_db.csv');
-                                    if (!response.ok) throw new Error('데이터 로딩 실패');
-                                    
-                                    const csvContent = await response.text();
-                                    const parsed = Papa.parse(csvContent, {
-                                        header: true,
-                                        dynamicTyping: false,
-                                        skipEmptyLines: true
-                                    });
+                // CSV 데이터 로딩
+                async loadQuestions() {
+                    try {
+                        const response = await fetch('ins_master_db.csv');
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const csvContent = await response.text();
+                        
+                        const parsed = Papa.parse(csvContent, {
+                            header: true,
+                            dynamicTyping: false,
+                            skipEmptyLines: true,
+                            delimiter: ',',
+                            quoteChar: '"',
+                            fastMode: true
+                        });
 
-                                    this.questions = parsed.data.filter(row =>
-                                        row.QCODE && (row.SOURCE === '인스교재' || row.SOURCE === '중개사시험')
-                                    );
+                        // 필터링: QCODE가 있고 SOURCE가 '인스교재' 또는 '중개사시험'인 경우
+                        this.questions = parsed.data.filter(row =>
+                            row.QCODE && 
+                            (row.SOURCE === '인스교재' || row.SOURCE === '중개사시험')
+                        );
 
-                                    console.log(`데이터 로딩 완료: ${this.questions.length}개 문제`);
-                                    ACIUApp.ui.updateStatistics();
-                                } catch (error) {
-                                    console.error('데이터 로딩 오류:', error);
-                                    ACIUApp.ui.showErrorMessage('데이터를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
-                                }
-                            },
+                        console.log(`데이터 로딩 완료: ${this.questions.length}개 문제`);
+                    } catch (error) {
+                        console.error('데이터 로딩 실패:', error);
+                        ACIUApp.ui.showErrorMessage('데이터를 불러오는데 실패했습니다. 파일 경로를 확인해주세요.');
+                    }
+                },
 
                 // 사용자 설정 로딩
                 loadUserSettings() {
                     try {
-                        const settings = localStorage.getItem('aciu_user_settings');
-                        if (settings) {
-                            this.userSettings = { ...this.userSettings, ...JSON.parse(settings) };
+                        const saved = localStorage.getItem('aciu_user_settings');
+                        if (saved) {
+                            this.userSettings = { ...this.userSettings, ...JSON.parse(saved) };
                         }
-                        console.log('사용자 설정 로딩 완료');
                     } catch (error) {
-                        console.error('사용자 설정 로딩 오류:', error);
+                        console.error('사용자 설정 로딩 실패:', error);
                     }
                 },
 
@@ -372,31 +234,28 @@
                 saveUserSettings() {
                     try {
                         localStorage.setItem('aciu_user_settings', JSON.stringify(this.userSettings));
-                        console.log('사용자 설정 저장 완료');
                     } catch (error) {
-                        console.error('사용자 설정 저장 오류:', error);
-                        ACIUApp.ui.showErrorMessage('설정 저장에 실패했습니다.');
+                        console.error('사용자 설정 저장 실패:', error);
                     }
                 },
 
                 // 학습 이력 로딩
                 loadLearningHistory() {
                     try {
-                        const history = localStorage.getItem('aciu_learning_history');
-                        if (history) {
-                            this.learningHistory = JSON.parse(history);
+                        const saved = localStorage.getItem('aciu_learning_history');
+                        if (saved) {
+                            this.learningHistory = { ...this.learningHistory, ...JSON.parse(saved) };
                         }
-                        console.log('학습 이력 로딩 완료');
                     } catch (error) {
-                        console.error('학습 이력 로딩 오류:', error);
+                        console.error('학습 이력 로딩 실패:', error);
                     }
                 }
             },
 
             // UI 관리
             ui: {
-                // 전체 UI 업데이트
-                updateAll() {
+                // 초기화
+                init() {
                     this.updateHeader();
                     this.updateStatistics();
                     this.updateQuote();
@@ -419,102 +278,94 @@
                     examDday.textContent = `D-${Math.max(0, diffDays)}일`;
                 },
 
-                                 // 통계 업데이트
-                 updateStatistics() {
-                     const totalQuestions = ACIUApp.data.questions.length;
-                     const solvedQcodes = new Set(Object.keys(ACIUApp.data.learningHistory.attempts));
-                     const overallRate = totalQuestions > 0 ? Math.round((solvedQcodes.size / totalQuestions) * 100) : 0;
-                     
-                     // 일일 진도율
-                     const today = new Date().toISOString().slice(0, 10);
-                     const todayData = Object.values(ACIUApp.data.learningHistory.attempts)
-                         .filter(attempt => attempt.timestamp.slice(0, 10) === today);
-                     const todaySolved = todayData.length;
-                     const todayCorrect = todayData.filter(attempt => attempt.correct).length;
-                     const dailyRate = todaySolved > 0 ? Math.round((todayCorrect / todaySolved) * 100) : 0;
-                     
-                     // UI 업데이트
-                     document.getElementById('total-questions').textContent = totalQuestions.toLocaleString();
-                     document.getElementById('completed-questions').textContent = solvedQcodes.size.toLocaleString();
-                     document.getElementById('overall-progress-rate').textContent = `${overallRate}%`;
-                     document.getElementById('daily-progress-rate').textContent = `${dailyRate}%`;
-                 },
+                // 통계 업데이트
+                updateStatistics() {
+                    const totalQuestions = ACIUApp.data.questions.length;
+                    const solvedQcodes = new Set(Object.keys(ACIUApp.data.learningHistory.attempts));
+                    const overallRate = totalQuestions > 0 ? Math.round((solvedQcodes.size / totalQuestions) * 100) : 0;
+                    
+                    // 일일 진도율
+                    const today = new Date().toISOString().slice(0, 10);
+                    const todayData = Object.values(ACIUApp.data.learningHistory.attempts)
+                        .filter(attempt => attempt.timestamp.slice(0, 10) === today);
+                    const todaySolved = todayData.length;
+                    const todayCorrect = todayData.filter(attempt => attempt.correct).length;
+                    const dailyRate = todaySolved > 0 ? Math.round((todayCorrect / todaySolved) * 100) : 0;
+                    
+                    // UI 업데이트
+                    document.getElementById('total-questions').textContent = totalQuestions.toLocaleString();
+                    document.getElementById('completed-questions').textContent = solvedQcodes.size.toLocaleString();
+                    document.getElementById('overall-progress-rate').textContent = `${overallRate}%`;
+                    document.getElementById('daily-progress-rate').textContent = `${dailyRate}%`;
+                },
 
-                                            // 과목별 점수 카드 업데이트 (더미 데이터 적용)
-                            updateSubjectCards() {
-                                const subjects = ['06재산보험', '07특종보험', '08배상책임보험', '09해상보험'];
-                                const scores = [55, 65, 67, 30]; // 더미 점수
-                                const subjectCards = document.getElementById('subject-cards');
-                                subjectCards.innerHTML = '';
-                                
-                                subjects.forEach((subject, index) => {
-                                    const score = scores[index];
-                                    const isPass = score >= 40;
-                                    const card = document.createElement('div');
-                                    card.className = 'flex justify-between items-center p-2 bg-white rounded border';
-                                    card.innerHTML = `
-                                        <div class="flex-1">
-                                            <div class="font-medium text-sm">${subject}</div>
-                                            <div class="text-xs text-gray-500">기준: 40점</div>
-                                        </div>
-                                        <div class="text-right">
-                                            <div class="font-bold ${isPass ? 'text-green-600' : 'text-red-600'}">${score}점</div>
-                                            <div class="text-xs ${isPass ? 'text-green-600' : 'text-red-600'}">${isPass ? '합격' : '불합격'}</div>
-                                        </div>
-                                    `;
-                                    subjectCards.appendChild(card);
-                                });
-                            },
+                // 과목별 점수 카드 업데이트 (더미 데이터 적용)
+                updateSubjectCards() {
+                    const subjects = ['06재산보험', '07특종보험', '08배상책임보험', '09해상보험'];
+                    const scores = [55, 65, 67, 30]; // 더미 점수
+                    const subjectCards = document.getElementById('subject-cards');
+                    subjectCards.innerHTML = '';
+                    
+                    subjects.forEach((subject, index) => {
+                        const score = scores[index];
+                        const isPass = score >= 40;
+                        const card = document.createElement('div');
+                        card.className = 'flex justify-between items-center p-2 bg-white rounded border';
+                        card.innerHTML = `
+                            <div class="flex-1">
+                                <div class="font-medium text-sm">${subject}</div>
+                                <div class="text-xs text-gray-500">기준: 40점</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold ${isPass ? 'text-green-600' : 'text-red-600'}">${score}점</div>
+                                <div class="text-xs ${isPass ? 'text-green-600' : 'text-red-600'}">${isPass ? '합격' : '불합격'}</div>
+                            </div>
+                        `;
+                        subjectCards.appendChild(card);
+                    });
+                },
 
-                                            // 전체 요약 카드 업데이트 (더미 데이터 적용)
-                            updateSummaryCards() {
-                                const scores = [55, 65, 67, 30]; // 더미 점수
-                                const overallScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-                                const lowestScore = Math.min(...scores);
-                                const isPass = overallScore >= 60 && lowestScore >= 40;
-                                
-                                const summaryCards = document.getElementById('summary-cards');
-                                summaryCards.innerHTML = '';
-                                
-                                // 평균 점수 카드
-                                const isAvgPass = overallScore >= 60;
-                                const avgCard = document.createElement('div');
-                                avgCard.className = 'flex justify-between items-center p-3 bg-white rounded border';
-                                avgCard.innerHTML = `
-                                    <div class="flex-1">
-                                        <div class="font-semibold">평균점수</div>
-                                        <div class="text-xs text-gray-500">기준: 60점</div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="text-lg font-bold ${isAvgPass ? 'text-green-600' : 'text-red-600'}">${overallScore}점</div>
-                                        <div class="text-xs ${isAvgPass ? 'text-green-600' : 'text-red-600'}">${isAvgPass ? '합격' : '불합격'}</div>
-                                    </div>
-                                `;
-                                summaryCards.appendChild(avgCard);
-                                
-                                // 최종 합격 여부 카드
-                                const finalCard = document.createElement('div');
-                                finalCard.className = `flex justify-between items-center p-3 rounded border ${isPass ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'}`;
-                                finalCard.innerHTML = `
-                                    <div class="flex-1">
-                                        <div class="font-bold">최종합격여부</div>
-                                        <div class="text-xs text-gray-500">모든 조건 만족</div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="text-lg font-bold ${isPass ? 'text-green-600' : 'text-red-600'}">${isPass ? '합격' : '불합격'}</div>
-                                        <div class="text-xs ${isPass ? 'text-green-600' : 'text-red-600'}">${isPass ? '🎉' : '⚠️'}</div>
-                                    </div>
-                                `;
-                                summaryCards.appendChild(finalCard);
-                            },
-
-                                                                                                                                                                   // 차트 업데이트 (전역 함수 호출로 변경)
-                          updateChart() {
-                              // 전역 함수 호출로 변경 (노팀장 & 코코치 합의 해결책)
-                              setTimeout(() => {
-                                  createScoreChart();
-                              }, 100); // 100ms 지연으로 Canvas 준비 보장
-                          },
+                // 전체 요약 카드 업데이트 (더미 데이터 적용)
+                updateSummaryCards() {
+                    const scores = [55, 65, 67, 30]; // 더미 점수
+                    const overallScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+                    const lowestScore = Math.min(...scores);
+                    const isPass = overallScore >= 60 && lowestScore >= 40;
+                    
+                    const summaryCards = document.getElementById('summary-cards');
+                    summaryCards.innerHTML = '';
+                    
+                    // 평균 점수 카드
+                    const isAvgPass = overallScore >= 60;
+                    const avgCard = document.createElement('div');
+                    avgCard.className = 'flex justify-between items-center p-3 bg-white rounded border';
+                    avgCard.innerHTML = `
+                        <div class="flex-1">
+                            <div class="font-semibold">평균점수</div>
+                            <div class="text-xs text-gray-500">기준: 60점</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${isAvgPass ? 'text-green-600' : 'text-red-600'}">${overallScore}점</div>
+                            <div class="text-xs ${isAvgPass ? 'text-green-600' : 'text-red-600'}">${isAvgPass ? '합격' : '불합격'}</div>
+                        </div>
+                    `;
+                    summaryCards.appendChild(avgCard);
+                    
+                    // 최종 합격 여부 카드
+                    const finalCard = document.createElement('div');
+                    finalCard.className = `flex justify-between items-center p-3 rounded border ${isPass ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'}`;
+                    finalCard.innerHTML = `
+                        <div class="flex-1">
+                            <div class="font-bold">최종합격여부</div>
+                            <div class="text-xs text-gray-500">모든 조건 만족</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${isPass ? 'text-green-600' : 'text-red-600'}">${isPass ? '합격' : '불합격'}</div>
+                            <div class="text-xs ${isPass ? 'text-green-600' : 'text-red-600'}">${isPass ? '🎉' : '⚠️'}</div>
+                        </div>
+                    `;
+                    summaryCards.appendChild(finalCard);
+                },
 
                 // 현재 시간 업데이트
                 updateCurrentTime() {
@@ -591,29 +442,24 @@
                     this.hideSettingsModal();
                 },
 
-                                                                   // 통계 데이터 불러오기
-                  loadStatisticsData() {
-                      console.log('통계 데이터 불러오기 시작');
-                      
-                      // 통계 섹션 표시
-                      document.getElementById('statistics-section').classList.remove('hidden');
-                      
-                      // 통계 업데이트
-                      this.updateSubjectCards();
-                      this.updateSummaryCards();
-                      
-                      // 차트 업데이트 (더 긴 지연으로 Canvas 완전 준비 보장)
-                      setTimeout(() => {
-                          this.updateChart();
-                      }, 1000); // 1초 지연으로 Canvas 완전 준비
-                      
-                      console.log('통계 데이터 불러오기 완료');
-                  },
+                // 통계 데이터 불러오기
+                loadStatisticsData() {
+                    console.log('통계 데이터 불러오기 시작');
+                    
+                    // 통계 섹션 표시
+                    document.getElementById('statistics-section').classList.remove('hidden');
+                    
+                    // 통계 업데이트
+                    this.updateSubjectCards();
+                    this.updateSummaryCards();
+                    
+                    console.log('통계 데이터 불러오기 완료');
+                },
 
-                 // 오류 메시지 표시
-                 showErrorMessage(message) {
-                     alert(message);
-                 }
+                // 오류 메시지 표시
+                showErrorMessage(message) {
+                    alert(message);
+                }
             },
 
             // 학습 엔진
